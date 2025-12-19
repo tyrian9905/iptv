@@ -1,14 +1,9 @@
 name: Sync IPTV to Gitee
 
 on:
-  # 手动触发
-  workflow_dispatch:
-  # 定时触发（每天凌晨2点）
+  workflow_dispatch:  # 手动触发
   schedule:
-    - cron: '0 4 * * *'
-  # 代码推送时触发
-  push:
-    branches: [ main ]
+    - cron: '0 4 * * *'  # 每天凌晨4点
 
 jobs:
   sync:
@@ -17,42 +12,31 @@ jobs:
     steps:
     - name: 下载IPTV文件
       run: |
-        # 创建文件夹
-        mkdir -p iptv
-        
-        # 下载文件
-        echo "正在下载 IPTV 文件..."
-        curl -s -o iptv/gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
-        
-        # 检查是否下载成功
-        if [ -s iptv/gx.m3u ]; then
-          echo "✅ 下载成功！文件大小: $(wc -l < iptv/gx.m3u) 行"
-        else
-          echo "❌ 下载失败！"
-          exit 1
-        fi
+        curl -s -o gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+        echo "✅ 下载完成，文件大小: $(wc -l < gx.m3u) 行"
     
     - name: 推送到Gitee
       run: |
+        # 设置变量
+        USER="tyrian9905"    # ← 用户名
+        REPO="iptv"        # ← 仓库名
+        TOKEN="a74325e9ecd2a8f505b8cd8d9b7138a0"      # ← Token
+        
         # 配置Git
-        git config --global user.name "tyrian9905"
-        git config --global user.email "10381912+tyrian9905@user.noreply.gitee.com"
+        git config --global user.name "Auto Sync"
+        git config --global user.email "auto@sync.com"
         
-        # 克隆Gitee仓库
-        echo "克隆Gitee仓库..."
-        git clone https://oauth2:${{ a74325e9ecd2a8f505b8cd8d9b7138a0 }}@gitee.com/${{ tyrian9905 }}/${{ iptv }}.git gitee-repo
+        # 克隆仓库
+        git clone https://oauth2:${TOKEN}@gitee.com/${USER}/${REPO}.git
         
-        cd gitee-repo
+        # 进入仓库并更新文件
+        cd ${REPO}
+        cp ../gx.m3u ./
         
-        # 更新文件
-        cp ../iptv/gx.m3u ./gx.m3u
-        
-        # 提交更改
+        # 提交并推送
         git add gx.m3u
-        git commit -m "🔄 自动同步 $(date '+%Y-%m-%d %H:%M:%S')"
-        
-        # 推送
-        echo "推送到Gitee..."
+        git commit -m "同步 $(date '+%Y-%m-%d %H:%M')"
         git push origin master
         
-        echo "✅ 同步完成！"
+        echo "🎉 同步成功！"
+        echo "访问地址: https://gitee.com/${USER}/${REPO}/raw/master/gx.m3u"
