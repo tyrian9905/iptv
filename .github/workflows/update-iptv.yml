@@ -1,0 +1,89 @@
+name: Update and Process IPTV Playlist
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 每天凌晨2点自动运行（北京时间10点）
+  workflow_dispatch:      # 支持手动触发
+  push:
+    paths:
+      - '.github/workflows/update-iptv.yml'
+
+jobs:
+  process-playlist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Download original playlist
+        run: |
+          curl -s -o original.m3u https://raw.githubusercontent.com/Healer-sys/Home/refs/heads/main/iptv/gx.m3u
+          echo "下载完成"
+          
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
+      - name: Process playlist
+        run: |
+          echo "开始处理M3U文件..."
+          python3 << 'EOF'
+          import re
+          
+          # 读取原始文件
+          with open('original.m3u', 'r', encoding='utf-8') as f:
+              lines = f.readlines()
+          
+          output_lines = []
+          for line in lines:
+              line = line.rstrip('\n')
+              
+              # 如果是 #EXTINF 行
+              if line.startswith('#EXTINF:'):
+                  # 找最后一个逗号
+                  if ',' in line:
+                      last_comma = line.rfind(',')
+                      if last_comma != -1:
+                          channel_name = line[last_comma + 1:].strip()
+                          
+                          # 如果已经包含tvg-id，跳过
+                          if 'tvg-id=' in line:
+                              output_lines.append(line)
+                              continue
+                              
+                          # 生成tvg-id：去掉特殊字符，空格变下划线，转小写
+                          tvg_id = re.sub(r'[^\w\s\u4e00-\u9fff]', '', channel_name)
+                          tvg_id = re.sub(r'\s+', '_', tvg_id)
+                          tvg_id = tvg_id.lower()
+                          
+                          # 插入到逗号前
+                          new_line = line[:last_comma] + f' tvg-id="{tvg_id}"' + line[last_comma:]
+                          output_lines.append(new_line)
+                          continue
+              
+              # 其他行直接添加
+              output_lines.append(line)
+          
+          # 保存处理后的文件
+          with open('processed.m3u', 'w', encoding='utf-8') as f:
+              f.write('\n'.join(output_lines))
+          
+          print(f"处理完成！共处理了 {len(lines)} 行")
+          EOF
+          
+      - name: Save to repository
+        run: |
+          # 创建目录
+          mkdir -p iptv
+          # 移动文件
+          mv processed.m3u iptv/gx_with_tvgid.m3u
+          echo "文件已保存到 iptv/gx_with_tvgid.m3u"
+          
+      - name: Commit and push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add iptv/
+          git commit -m "🔄 自动更新IPTV列表 $(date +'%Y-%m-%d %H:%M:%S')" || echo "没有变化需要提交"
+          git push
