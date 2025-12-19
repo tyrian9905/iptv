@@ -40,7 +40,7 @@ jobs:
         
         # 克隆Gitee仓库
         echo "克隆Gitee仓库..."
-        git clone https://oauth2:${{ secrets.a74325e9ecd2a8f505b8cd8d9b7138a0 }}@gitee.com/${{ secrets.tyrian9905 }}/${{ secrets.iptv }}.git gitee-repo
+        git clone https://oauth2:${{ a74325e9ecd2a8f505b8cd8d9b7138a0 }}@gitee.com/${{ tyrian9905 }}/${{ iptv }}.git gitee-repo
         
         cd gitee-repo
         
