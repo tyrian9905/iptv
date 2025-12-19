@@ -1,0 +1,77 @@
+name: Process IPTV Playlist Daily
+
+on:
+  schedule:
+    # 每天北京时间上午10点运行
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # 允许手动触发
+  push:
+    branches: [ main ]
+    paths:
+      - 'process.sh'
+      - '.github/workflows/process-iptv.yml'
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Make script executable
+        run: chmod +x process.sh
+        
+      - name: Process IPTV playlist
+        run: |
+          echo "🕐 开始时间: $(date)"
+          ./process.sh
+          echo "🕐 结束时间: $(date)"
+          
+      - name: Show processed file info
+        run: |
+          echo "📄 处理后的文件信息："
+          if [ -f "iptv/gx_with_tvgid.m3u" ]; then
+            echo "文件大小: $(wc -l < iptv/gx_with_tvgid.m3u) 行"
+            echo "前3行内容："
+            head -3 iptv/gx_with_tvgid.m3u
+          else
+            echo "❌ 文件未生成"
+          fi
+          
+      - name: Commit and push changes
+        run: |
+          # 检查是否有变化
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "没有变化需要提交"
+            exit 0
+          fi
+          
+          # 配置git
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          
+          # 提交
+          git add iptv/
+          git commit -m "🔄 自动更新IPTV列表 $(date +'%Y-%m-%d %H:%M:%S')"
+          
+          # 推送
+          git push
+          
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## 🎯 处理结果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ 脚本执行完成" >> $GITHUB_STEP_SUMMARY
+          if [ -f "iptv/gx_with_tvgid.m3u" ]; then
+            LINES=$(wc -l < iptv/gx_with_tvgid.m3u)
+            echo "- 📊 生成文件行数: $LINES" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔗 文件地址: https://raw.githubusercontent.com/${{ github.repository }}/main/iptv/gx_with_tvgid.m3u" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ 文件未生成" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⏰ 下次自动运行: 每天UTC时间02:00 (北京时间10:00)" >> $GITHUB_STEP_SUMMARY
