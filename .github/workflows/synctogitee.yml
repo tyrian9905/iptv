@@ -12,19 +12,22 @@ jobs:
     steps:
     - name: 下载IPTV文件
       run: |
-        curl -s -o iptv/gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+        curl -s -o gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
         
         # 如果失败，尝试方法2: wget
-        if [ ! -s iptv/gx.m3u ]; then
-          wget -q -O iptv/gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+        if [ ! -s gx.m3u ]; then
+          echo "使用wget下载..."
+          wget -q -O gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
         fi
         
         # 如果还是失败，使用备用源
-        if [ ! -s iptv/gx.m3u ]; then
+        if [ ! -s gx.m3u ]; then
           echo "使用备用源下载..."
-          curl -s -o iptv/gx.m3u https://ghfast.top/https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+          curl -s -o gx.m3u https://ghfast.top/https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
         fi
-    
+        
+      echo "✅ 下载完成，文件大小: $(wc -l < gx.m3u) 行"
+      
     - name: 推送到Gitee
       run: |
         # 设置变量
