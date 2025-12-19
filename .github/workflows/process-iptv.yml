@@ -15,11 +15,15 @@ jobs:
   process:
     runs-on: ubuntu-latest
     
+    permissions:
+      contents: write  # 添加这个权限！
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}  # 使用正确的token
           
       - name: Make script executable
         run: chmod +x process.sh
@@ -35,30 +39,37 @@ jobs:
           echo "📄 处理后的文件信息："
           if [ -f "iptv/gx_with_tvgid.m3u" ]; then
             echo "文件大小: $(wc -l < iptv/gx_with_tvgid.m3u) 行"
-            echo "前3行内容："
+            echo "文件前3行："
             head -3 iptv/gx_with_tvgid.m3u
+            echo ""
+            echo "文件后3行："
+            tail -3 iptv/gx_with_tvgid.m3u
           else
             echo "❌ 文件未生成"
           fi
           
       - name: Commit and push changes
         run: |
+          # 配置git身份
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
           # 检查是否有变化
-          if git diff --quiet && git diff --cached --quiet; then
+          git status
+          
+          # 添加文件
+          git add iptv/ || true
+          
+          # 检查是否有需要提交的更改
+          if git diff --cached --quiet; then
             echo "没有变化需要提交"
-            exit 0
+          else
+            echo "有变化，准备提交..."
+            git commit -m "🔄 自动更新IPTV列表 $(date +'%Y-%m-%d %H:%M:%S')"
+            git pull --rebase origin main
+            git push origin main
+            echo "✅ 提交成功"
           fi
-          
-          # 配置git
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          
-          # 提交
-          git add iptv/
-          git commit -m "🔄 自动更新IPTV列表 $(date +'%Y-%m-%d %H:%M:%S')"
-          
-          # 推送
-          git push
           
       - name: Create summary
         if: always()
@@ -70,6 +81,12 @@ jobs:
             LINES=$(wc -l < iptv/gx_with_tvgid.m3u)
             echo "- 📊 生成文件行数: $LINES" >> $GITHUB_STEP_SUMMARY
             echo "- 🔗 文件地址: https://raw.githubusercontent.com/${{ github.repository }}/main/iptv/gx_with_tvgid.m3u" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📋 处理示例" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            # 显示3个示例
+            grep "^#EXTINF:" iptv/gx_with_tvgid.m3u | head -3 >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
           else
             echo "- ❌ 文件未生成" >> $GITHUB_STEP_SUMMARY
           fi
