@@ -12,18 +12,18 @@ jobs:
     steps:
     - name: 下载IPTV文件
       run: |
-        curl -s -o gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+        curl -s -o gxmobile.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
         
         # 如果失败，尝试方法2: wget
-        if [ ! -s gx.m3u ]; then
+        if [ ! -s gxmobile.m3u ]; then
           echo "使用wget下载..."
-          wget -q -O gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+          wget -q -O gxmobile.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
         fi
         
         # 如果还是失败，使用备用源
-        if [ ! -s gx.m3u ]; then
+        if [ ! -s gxmobile.m3u ]; then
           echo "使用备用源下载..."
-          curl -s -o gx.m3u https://ghfast.top/https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+          curl -s -o gxmobile.m3u https://gh-proxy.org/https:/raw.githubusercontent.com/Healer-sys/Home/refs/heads/main/iptv/gx.m3u
         fi
 
     - name: 推送到Gitee
@@ -42,7 +42,7 @@ jobs:
         
         # 进入仓库并更新文件
         cd ${REPO}
-        cp ../gx.m3u ./
+        cp ../gxmobile.m3u ./
         
         # 提交并推送
         git add gxmobile.m3u
