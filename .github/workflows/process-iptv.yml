@@ -1,94 +1,91 @@
-name: Process IPTV Playlist Daily
+name: Process IPTV Playlist
 
 on:
+  workflow_dispatch:  # 仅手动触发
   schedule:
-    # 每天北京时间上午10点运行
-    - cron: '0 2 * * *'
-  workflow_dispatch:  # 允许手动触发
-  push:
-    branches: [ main ]
-    paths:
-      - 'process.sh'
-      - '.github/workflows/process-iptv.yml'
+    - cron: '0 2 * * *'  # 每天UTC 2点
 
 jobs:
   process:
     runs-on: ubuntu-latest
     
-    permissions:
-      contents: write  # 添加这个权限！
-    
     steps:
-      - name: Checkout repository
+      - name: Checkout with token
         uses: actions/checkout@v4
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}  # 使用正确的token
           
-      - name: Make script executable
-        run: chmod +x process.sh
-        
-      - name: Process IPTV playlist
+      - name: Setup Git
         run: |
-          echo "🕐 开始时间: $(date)"
-          ./process.sh
-          echo "🕐 结束时间: $(date)"
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
           
-      - name: Show processed file info
+      - name: Download and process M3U
         run: |
-          echo "📄 处理后的文件信息："
-          if [ -f "iptv/gx_with_tvgid.m3u" ]; then
-            echo "文件大小: $(wc -l < iptv/gx_with_tvgid.m3u) 行"
-            echo "文件前3行："
-            head -3 iptv/gx_with_tvgid.m3u
-            echo ""
-            echo "文件后3行："
-            tail -3 iptv/gx_with_tvgid.m3u
-          else
-            echo "❌ 文件未生成"
+          # 下载原始文件
+          echo "正在下载原始文件..."
+          curl -s -L "https://raw.githubusercontent.com/Healer-sys/Home/refs/heads/main/iptv/gx.m3u" -o original.m3u
+          
+          # 检查文件是否下载成功
+          if [ ! -s original.m3u ]; then
+            echo "错误：文件下载失败或为空"
+            exit 1
           fi
           
-      - name: Commit and push changes
+          echo "原始文件下载成功，行数: $(wc -l < original.m3u)"
+          
+          # 处理文件
+          echo "开始处理文件..."
+          mkdir -p iptv
+          
+          # 使用awk处理，更简单
+          awk '
+          BEGIN {
+            print "开始处理M3U文件..."
+          }
+          /^#EXTINF:/ {
+            line = $0
+            if (line !~ /tvg-id=/) {
+              # 提取频道名称
+              split(line, parts, ",")
+              if (length(parts) >= 2) {
+                channel_name = parts[length(parts)]
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "", channel_name)
+                
+                # 生成tvg-id
+                tvg_id = channel_name
+                gsub(/[^a-zA-Z0-9\u4e00-\u9fff\s_-]/, "", tvg_id)
+                gsub(/[[:space:]]+/, "_", tvg_id)
+                tvg_id = tolower(tvg_id)
+                
+                # 重建行
+                new_line = ""
+                for (i = 1; i < length(parts); i++) {
+                  if (i > 1) new_line = new_line ","
+                  new_line = new_line parts[i]
+                }
+                new_line = new_line " tvg-id=\"" tvg_id "\"," channel_name
+                print new_line
+                next
+              }
+            }
+          }
+          { print }
+          ' original.m3u > iptv/gx_with_tvgid.m3u
+          
+          echo "处理完成！"
+          echo "处理后的文件行数: $(wc -l < iptv/gx_with_tvgid.m3u)"
+          
+      - name: Commit and Push
         run: |
-          # 配置git身份
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
           # 检查是否有变化
-          git status
-          
-          # 添加文件
-          git add iptv/ || true
-          
-          # 检查是否有需要提交的更改
-          if git diff --cached --quiet; then
+          if [ -z "$(git status --porcelain iptv/)" ]; then
             echo "没有变化需要提交"
           else
-            echo "有变化，准备提交..."
-            git commit -m "🔄 自动更新IPTV列表 $(date +'%Y-%m-%d %H:%M:%S')"
-            git pull --rebase origin main
-            git push origin main
+            echo "检测到变化，准备提交..."
+            git add iptv/
+            git commit -m "🤖 自动更新IPTV列表 $(date +'%Y-%m-%d %H:%M:%S')"
+            git push
             echo "✅ 提交成功"
           fi
-          
-      - name: Create summary
-        if: always()
-        run: |
-          echo "## 🎯 处理结果" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ 脚本执行完成" >> $GITHUB_STEP_SUMMARY
-          if [ -f "iptv/gx_with_tvgid.m3u" ]; then
-            LINES=$(wc -l < iptv/gx_with_tvgid.m3u)
-            echo "- 📊 生成文件行数: $LINES" >> $GITHUB_STEP_SUMMARY
-            echo "- 🔗 文件地址: https://raw.githubusercontent.com/${{ github.repository }}/main/iptv/gx_with_tvgid.m3u" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### 📋 处理示例" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            # 显示3个示例
-            grep "^#EXTINF:" iptv/gx_with_tvgid.m3u | head -3 >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ❌ 文件未生成" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "⏰ 下次自动运行: 每天UTC时间02:00 (北京时间10:00)" >> $GITHUB_STEP_SUMMARY
