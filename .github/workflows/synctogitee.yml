@@ -3,7 +3,7 @@ name: Sync IPTV to Gitee
 on:
   workflow_dispatch:  # 手动触发
   schedule:
-    - cron: '0 4 * * *'  # 每天凌晨4点
+    - cron: '0 2 * * *'  # 每天凌晨2点
 
 jobs:
   sync:
