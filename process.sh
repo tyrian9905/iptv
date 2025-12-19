@@ -1,97 +1,125 @@
 #!/bin/bash
 
-echo "开始处理IPTV文件..."
-echo "=========================="
+echo "🎬 开始处理IPTV播放列表..."
+echo "======================================"
 
-# 下载文件
-echo "下载原始文件..."
-curl -s "https://raw.githubusercontent.com/Healer-sys/Home/refs/heads/main/iptv/gx.m3u" -o input.m3u
+# 1. 下载原始文件，指定UTF-8编码
+echo "📥 下载原始文件..."
+curl -s -o original.m3u "https://raw.githubusercontent.com/Healer-sys/Home/refs/heads/main/iptv/gx.m3u"
 
-# 检查文件编码，确保是UTF-8
-if command -v file &> /dev/null; then
-    encoding=$(file -b --mime-encoding input.m3u)
-    echo "文件编码: $encoding"
-    
-    if [ "$encoding" != "utf-8" ] && command -v iconv &> /dev/null; then
-        echo "转换编码为UTF-8..."
-        iconv -f "$encoding" -t utf-8 input.m3u > input_utf8.m3u
-        mv input_utf8.m3u input.m3u
+# 转换为UTF-8编码（确保中文正确处理）
+if command -v iconv &> /dev/null; then
+    iconv -f utf-8 -t utf-8 original.m3u > original_utf8.m3u
+    mv original_utf8.m3u original.m3u
+fi
+
+# 检查文件
+if [ ! -s original.m3u ]; then
+    echo "❌ 下载失败！"
+    exit 1
+fi
+
+lines=$(wc -l < original.m3u)
+echo "✅ 下载完成，文件大小：$lines 行"
+
+# 2. 处理文件
+echo "🔧 处理文件，添加tvg-id..."
+> processed.m3u
+
+# 使用 while 循环逐行处理
+while IFS= read -r line || [[ -n "$line" ]]; do
+    # 跳过空行
+    if [ -z "$line" ]; then
+        echo "" >> processed.m3u
+        continue
     fi
+    
+    # 如果是 EXTINF 行
+    if [[ "$line" == "#EXTINF:"* ]]; then
+        # 检查是否已经有 tvg-id
+        if [[ "$line" != *"tvg-id="* ]]; then
+            # 使用 sed 提取频道名称（最后一个逗号后的内容）
+            channel_name=$(echo "$line" | sed 's/.*,//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            
+            if [ -n "$channel_name" ]; then
+                # 生成 tvg-id：使用简单方法处理中文
+                # 只保留中文、英文、数字、空格，其他字符替换为空格
+                tvg_id=$(echo "$channel_name" | sed '
+                    # 移除方括号和括号
+                    s/$$//g                     s/$$//g
+                    s/(//g
+                    s/)//g
+                    # 替换标点符号为空格
+                    s/[[:punct:]]/ /g
+                    # 合并多个空格
+                    s/[[:space:]]\+/ /g
+                    # 去掉首尾空格
+                    s/^[[:space:]]*//
+                    s/[[:space:]]*$//
+                    # 空格替换为下划线
+                    s/ /_/g
+                    # 转为小写
+                    s/.*/\L&/
+                ')
+                
+                # 如果 tvg_id 为空或只有下划线，使用默认值
+                if [ -z "$tvg_id" ] || [ "$tvg_id" = "_" ]; then
+                    tvg_id="channel"
+                fi
+                
+                # 在最后一个逗号前插入 tvg-id
+                # 找到最后一个逗号的位置
+                if [[ "$line" == *,* ]]; then
+                    # 使用 sed 插入
+                    new_line=$(echo "$line" | sed "s/,/ tvg-id=\"$tvg_id\",/")
+                    echo "$new_line" >> processed.m3u
+                else
+                    # 没有逗号，直接添加
+                    echo "$line tvg-id=\"$tvg_id\"" >> processed.m3u
+                fi
+            else
+                # 没有频道名称
+                echo "$line tvg-id=\"unknown\"" >> processed.m3u
+            fi
+        else
+            # 已经有 tvg-id，直接输出
+            echo "$line" >> processed.m3u
+        fi
+    else
+        # 不是 EXTINF 行，直接输出
+        echo "$line" >> processed.m3u
+    fi
+done < original.m3u
+
+echo "✅ 处理完成！"
+
+# 3. 检查处理结果
+processed_lines=$(wc -l < processed.m3u)
+echo "📊 输入: $lines 行，输出: $processed_lines 行"
+
+if [ "$lines" -eq "$processed_lines" ]; then
+    echo "✅ 行数匹配成功"
+else
+    echo "⚠️  行数不匹配，可能存在处理问题"
 fi
 
-# 使用 AWK 处理
-echo "处理中..."
-awk '
-BEGIN {
-    print "开始处理M3U文件..."
-    FS = ","
-}
-/^#EXTINF:/ {
-    if ($0 !~ /tvg-id=/) {
-        # 获取频道名称（最后一个字段）
-        channel_name = $NF
-        gsub(/^[[:space:]]+|[[:space:]]+$/, "", channel_name)
-        
-        # 清理频道名称，生成tvg-id
-        tvg_id = channel_name
-        
-        # 移除特殊字符，但保留中文字符
-        # 使用字符范围匹配
-        gsub(/[][(){}\\/|~!@#$%^&*+=;:"`<>.,?°×]/, "", tvg_id)
-        
-        # 替换空格为下划线
-        gsub(/[[:space:]]+/, "_", tvg_id)
-        
-        # 转换为小写
-        tvg_id = tolower(tvg_id)
-        
-        # 如果tvg_id为空，使用默认值
-        if (tvg_id == "" || tvg_id == "_") {
-            tvg_id = "channel_" NR
-        }
-        
-        # 重建行
-        line_before = substr($0, 1, length($0) - length(channel_name) - 1)
-        print line_before " tvg-id=\"" tvg_id "\"," channel_name
-        next
-    }
-}
-{ print }
-' input.m3u > output.m3u
-
-# 检查结果
-input_lines=$(wc -l < input.m3u)
-output_lines=$(wc -l < output.m3u)
-
-echo "处理完成!"
-echo "输入行数: $input_lines"
-echo "输出行数: $output_lines"
-
-if [ $input_lines -ne $output_lines ]; then
-    echo "警告: 行数不匹配!"
-    echo "显示前几行差异..."
-    head -5 input.m3u
-    echo "---"
-    head -5 output.m3u
-fi
-
-# 保存文件
+# 4. 保存到目录
 mkdir -p iptv
-mv output.m3u iptv/gx_processed.m3u
+mv processed.m3u iptv/gx_with_tvgid.m3u
 
-# 显示一些示例
+# 5. 显示示例
 echo ""
-echo "处理示例:"
-echo "=========================="
-echo "原始行示例:"
-grep "^#EXTINF:" input.m3u | head -3
-echo ""
-echo "处理后示例:"
-grep "^#EXTINF:" iptv/gx_processed.m3u | head -3
+echo "📋 处理示例（前5个频道）："
+echo "======================================"
+grep -A1 "^#EXTINF:" iptv/gx_with_tvgid.m3u | head -10 | while read -r line; do
+    if [[ "$line" == "#EXTINF:"* ]]; then
+        echo "频道: $line"
+    fi
+done
 
 # 清理
-rm -f input.m3u
+rm -f original.m3u
 
 echo ""
-echo "文件已保存: iptv/gx_processed.m3u"
-echo "=========================="
+echo "🎉 处理完成！文件已保存到：iptv/gx_with_tvgid.m3u"
+echo "======================================"
