@@ -1,0 +1,58 @@
+name: Sync IPTV to Gitee
+
+on:
+  # 手动触发
+  workflow_dispatch:
+  # 定时触发（每天凌晨2点）
+  schedule:
+    - cron: '0 4 * * *'
+  # 代码推送时触发
+  push:
+    branches: [ main ]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 下载IPTV文件
+      run: |
+        # 创建文件夹
+        mkdir -p iptv
+        
+        # 下载文件
+        echo "正在下载 IPTV 文件..."
+        curl -s -o iptv/gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+        
+        # 检查是否下载成功
+        if [ -s iptv/gx.m3u ]; then
+          echo "✅ 下载成功！文件大小: $(wc -l < iptv/gx.m3u) 行"
+        else
+          echo "❌ 下载失败！"
+          exit 1
+        fi
+    
+    - name: 推送到Gitee
+      run: |
+        # 配置Git
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        
+        # 克隆Gitee仓库
+        echo "克隆Gitee仓库..."
+        git clone https://oauth2:${{ secrets.a74325e9ecd2a8f505b8cd8d9b7138a0 }}@gitee.com/${{ secrets.tyrian9905 }}/${{ secrets.iptv }}.git gitee-repo
+        
+        cd gitee-repo
+        
+        # 更新文件
+        cp ../iptv/gx.m3u ./gx.m3u
+        
+        # 提交更改
+        git add gx.m3u
+        git commit -m "🔄 自动同步 $(date '+%Y-%m-%d %H:%M:%S')"
+        
+        # 推送
+        echo "推送到Gitee..."
+        git push origin master
+        
+        echo "✅ 同步完成！"
