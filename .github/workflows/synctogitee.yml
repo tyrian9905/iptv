@@ -42,7 +42,7 @@ jobs:
         
         # 进入仓库并更新文件
         cd ${REPO}
-        cp ../gxmobile.m3u ./
+        cp ../gx.m3u ./
         
         # 提交并推送
         git add gxmobile.m3u
