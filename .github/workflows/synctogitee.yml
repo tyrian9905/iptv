@@ -13,7 +13,6 @@ jobs:
     - name: 下载IPTV文件
       run: |
         curl -s -o gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
-         echo "✅ 下载完成，文件大小: $(wc -l < gx.m3u) 行"
         
         # 如果失败，尝试方法2: wget
         if [ ! -s gx.m3u ]; then
