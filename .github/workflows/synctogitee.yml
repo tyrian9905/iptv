@@ -12,8 +12,18 @@ jobs:
     steps:
     - name: 下载IPTV文件
       run: |
-        curl -s -o gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
-        echo "✅ 下载完成，文件大小: $(wc -l < gx.m3u) 行"
+        curl -s -o iptv/gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+        
+        # 如果失败，尝试方法2: wget
+        if [ ! -s iptv/gx.m3u ]; then
+          wget -q -O iptv/gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+        fi
+        
+        # 如果还是失败，使用备用源
+        if [ ! -s iptv/gx.m3u ]; then
+          echo "使用备用源下载..."
+          curl -s -o iptv/gx.m3u https://ghfast.top/https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+        fi
     
     - name: 推送到Gitee
       run: |
@@ -31,12 +41,12 @@ jobs:
         
         # 进入仓库并更新文件
         cd ${REPO}
-        cp ../gx.m3u ./
+        cp ../gxmobile.m3u ./
         
         # 提交并推送
-        git add gx.m3u
+        git add gxmobile.m3u
         git commit -m "同步 $(date '+%Y-%m-%d %H:%M')"
         git push origin master
         
         echo "🎉 同步成功！"
-        echo "访问地址: https://gitee.com/${USER}/${REPO}/raw/master/gx.m3u"
+        echo "访问地址: https://gitee.com/${USER}/${REPO}/raw/master/gxmobile.m3u"
