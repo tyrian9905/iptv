@@ -1,9 +1,10 @@
-name: 同步广西移动m3u
+name: 同步并精简广西移动M3U至Gitee
 
 on:
   workflow_dispatch:  # 手动触发
   schedule:
-    - cron: '0 2 * * *'  # 每天凌晨2点
+  # 北京时间凌晨2点 = UTC时间前一天18点
+  - cron: '0 18 * * *'  # UTC时间18点执行（北京时间第二天2点）
 
 jobs:
   sync:
@@ -15,7 +16,7 @@ jobs:
         curl -s -o gxmobile.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
         curl -s -o gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
 
-    - name: 处理IPTV文件（过滤超清和4K资源）
+    - name: 处理IPTV文件（过滤超清极清和4K资源）
       run: |
         # 创建过滤脚本
         cat > filter_channels.sh << 'EOF'
@@ -41,8 +42,8 @@ jobs:
             
             # 如果是频道信息行（包含tvg-name）
             if [[ "$line" == "#EXTINF"* ]]; then
-                # 检查是否包含"超清"或"纯享4K"
-                if [[ "$line" == *"超清"* ]] || [[ "$line" == *"纯享4K"* ]]; then
+                # 检查是否包含"超清"或"纯享4K"或"极清"
+                if [[ "$line" == *"超清"* ]] || [[ "$line" == *"极清"* ]] || [[ "$line" == *"纯享4K"* ]]; then
                     # 跳过这个频道（包括下一行的URL）
                     skip_next=true
                 else
@@ -76,7 +77,7 @@ jobs:
         
         # 验证处理结果
         echo "🔍 处理结果验证："
-        grep -E "超清|纯享4K" gxmobile_SD.m3u || echo "✅ 已成功过滤超清和4K资源"
+        grep -E "超清|极清|纯享4K" gxmobile_SD.m3u || echo "✅ 已成功过滤超清极清和4K资源"
         grep -E "高清|标清" gxmobile_SD.m3u | head -5 | sed 's/^/  保留频道: /' || echo "⚠️ 未找到高清或标清频道"
 
     - name: 推送到Gitee
@@ -89,6 +90,10 @@ jobs:
         # 配置Git
         git config --global user.name "Auto Sync"
         git config --global user.email "auto@sync.com"
+        
+        export TZ='Asia/Shanghai'
+        # 获取北京时间
+        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
         git clone https://oauth2:${TOKEN}@gitee.com/${USER}/${REPO}.git
@@ -104,9 +109,9 @@ jobs:
         
         # 提交并推送
         git add gxmobile.m3u gxmobile_SD.m3u
-        git commit -m "同步并过滤频道 $(date '+%Y-%m-%d %H:%M')
+        git commit -m "同步并过滤频道 ${BEIJING_TIME}
         - 保留：高清和标清频道
-        - 过滤：超清和纯享4K频道"
+        - 过滤：超清、极清、纯享4K频道"
         git push origin master
         
         echo "🎉 同步成功！"
