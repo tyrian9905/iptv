@@ -1,4 +1,4 @@
-name: Sync2 IPTV to Gitee
+name: 同步广西移动m3u
 
 on:
   workflow_dispatch:  # 手动触发
