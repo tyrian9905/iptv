@@ -1,4 +1,22 @@
-    - name: 处理IPTV文件(过滤超清极清和4K资源)
+name: 处理广西移动M3U至Gitee
+
+on:
+  workflow_dispatch:  # 手动触发
+  schedule:
+  # 北京时间凌晨2点 = UTC时间前一天18点
+  - cron: '0 18 * * *'  # UTC时间18点执行（北京时间第二天2点）
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 下载原始IPTV文件
+      run: |
+        curl -s -o gxmobile.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+        curl -s -o gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+
+    - name: 处理IPTV文件（过滤超清极清和4K资源）
       run: |
         # 创建过滤脚本
         cat > filter_channels.sh << 'EOF'
@@ -58,14 +76,18 @@
         echo "🔍 处理结果验证："
         grep -E "超清|极清|纯享4K" gxmobile_SD.m3u || echo "✅ 已成功过滤超清极清和4K资源"
         grep -E "高清|标清" gxmobile_SD.m3u | head -5 | sed 's/^/  保留频道: /' || echo "⚠️ 未找到高清或标清频道"
-        
-        # 清理两个文件中的 tvg-name 字符
+
+    - name: 清理tvg-name中的多余字符
+      run: |
         echo "🧹 清理 tvg-name 中的多余字符..."
         for file in gxmobile.m3u gxmobile_SD.m3u
         do
             if [[ -f "$file" ]]; then
+                echo "正在处理文件: $file"
                 # 使用 sed 删除指定字符
-                sed -i 's/ 超清//g; s/ 高清//g; s/标清//g; s/ 极清//g; s/ 4K//g; s/标清4M//g; s/(标清)//g' "$file"
+                # 注意：由于字符前可能有空格，我们使用更灵活的匹配方式
+                sed -i -E 's/(,tvg-name="[^"]*)( 超清| 高清|标清| 极清| 4K|标清4M|$$标清$$)([^"]*")/\1\3/' "$file"
+                sed -i -E 's/(,tvg-name="[^"]*)(标清|高清|超清|极清|4K|标清4M)([^"]*")/\1\3/' "$file"
                 echo "✅ 已清理 $file"
             else
                 echo "⚠️ 文件 $file 不存在，跳过清理"
@@ -104,7 +126,7 @@
         git commit -m "同步并过滤频道 ${BEIJING_TIME}
         - 保留：高清和标清频道
         - 过滤：超清、极清、纯享4K频道
-        - 清理 tvg-name 中的多余字符"
+        - 清理 tvg-name 中的多余字符（超清、高清、标清、极清、4K、标清4M、(标清)）"
         git push origin master
         
         echo "🎉 同步成功！"
@@ -114,3 +136,7 @@
         echo "📊 文件信息："
         echo "gxmobile.m3u 大小: $(du -h gxmobile.m3u | cut -f1)"
         echo "gxmobile_SD.m3u 大小: $(du -h gxmobile_SD.m3u | cut -f1)"
+        echo ""
+        echo "🧹 清理效果示例："
+        echo "清理后的频道名称示例："
+        grep -E 'tvg-name="[^"]*"' gxmobile_SD.m3u | head -3 | sed 's/^/  /'
