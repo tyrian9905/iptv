@@ -1,4 +1,3 @@
-
 name: 处理广西移动M3U至Gitee
 
 on:
@@ -77,21 +76,32 @@ jobs:
         grep -E "超清|极清|纯享4K" gxmobile_SD.m3u || echo "✅ 已成功过滤超清极清和4K资源"
         grep -E "高清|标清" gxmobile_SD.m3u | head -5 | sed 's/^/  保留频道: /' || echo "⚠️ 未找到高清或标清频道"
 
-    - name: 清理tvg-name中的指定字符
+    - name: 修改EPG源URL并清理tvg-name字符
       run: |
-        echo "🧹 清理 tvg-name 中的指定字符..."
+        echo "🔄 修改EPG源URL并清理tvg-name字符..."
         
-        # 清理两个文件
+        # 定义新的EPG源URL
+        new_epg_url='https://gitee.com/taksssss/tv/raw/main/epg/112114.xml.gz'
+        
+        # 处理两个文件
         for file in gxmobile.m3u gxmobile_SD.m3u
         do
             if [[ -f "$file" ]]; then
                 echo "正在处理文件: $file"
+                
                 # 创建临时文件
                 temp_file="${file}.temp"
                 
-                # 处理每一行，只清理tvg-name字段中的指定字符
+                # 逐行处理文件
                 while IFS= read -r line
                 do
+                    # 1. 处理EPG源URL（第一行）
+                    if [[ "$line" =~ ^#EXTM3U ]]; then
+                        # 替换x-tvg-url值
+                        line=$(echo "$line" | sed "s|x-tvg-url=\"[^\"]*\"|x-tvg-url=\"$new_epg_url\"|g")
+                    fi
+                    
+                    # 2. 处理tvg-name字段中的指定字符
                     if [[ "$line" =~ tvg-name=\"([^\"]*)\" ]]; then
                         # 提取tvg-name的值
                         tvg_name="${BASH_REMATCH[1]}"
@@ -100,7 +110,7 @@ jobs:
                         # 严格按照要求删除指定字符（注意空格）
                         tvg_name="${tvg_name// 超清/}"
                         tvg_name="${tvg_name// 高清/}"
-                        tvg_name="${tvg_name// 标清/}"
+                        tvg_name="${tvg_name//标清/}"
                         tvg_name="${tvg_name// 极清/}"
                         tvg_name="${tvg_name// 4K/}"
                         tvg_name="${tvg_name//标清4M/}"
@@ -111,20 +121,15 @@ jobs:
                             line="${line//tvg-name=\"$original_tvg_name\"/tvg-name=\"$tvg_name\"}"
                         fi
                     fi
+                    
                     echo "$line" >> "$temp_file"
                 done < "$file"
                 
                 # 替换原文件
                 mv "$temp_file" "$file"
-                echo "✅ 已清理 $file"
-                
-                # 显示清理前后的对比
-                echo "清理效果示例："
-                grep -m 3 'tvg-name=' "$file" | while read -r line; do
-                    echo "  清理后: $line"
-                done
+                echo "✅ 已处理 $file"
             else
-                echo "⚠️ 文件 $file 不存在，跳过清理"
+                echo "⚠️ 文件 $file 不存在，跳过处理"
             fi
         done
 
@@ -158,9 +163,8 @@ jobs:
         # 提交并推送
         git add gxmobile.m3u gxmobile_SD.m3u
         git commit -m "同步并过滤频道 ${BEIJING_TIME}
-        - 保留：高清和标清频道
-        - 过滤：超清、极清、纯享4K频道
-        - 清理 tvg-name 中的字符：' 超清'、' 高清'、'标清'、' 极清'、' 4K'、'标清4M'、'(标清)'"
+        - 更新EPG源URL：https://gitee.com/taksssss/tv/raw/main/epg/112114.xml.gz
+        - 清理tvg-name字符：' 超清'、' 高清'、'标清'、' 极清'、' 4K'、'标清4M'、'(标清)'"
         git push origin master
         
         echo "🎉 同步成功！"
