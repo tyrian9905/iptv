@@ -1,0 +1,116 @@
+    - name: 处理IPTV文件(过滤超清极清和4K资源)
+      run: |
+        # 创建过滤脚本
+        cat > filter_channels.sh << 'EOF'
+        #!/bin/bash
+        
+        input_file="gx.m3u"
+        output_file="gxmobile_SD.m3u"
+        
+        # 清空输出文件
+        > "$output_file"
+        
+        # 逐行处理M3U文件
+        while IFS= read -r line
+        do
+            # 如果是EXTM3U头或空白行，直接输出
+            if [[ "$line" == "#EXTM3U" ]] || [[ -z "$line" ]]; then
+                echo "$line" >> "$output_file"
+                continue
+            fi
+            
+            # 如果是频道信息行（包含tvg-name）
+            if [[ "$line" == "#EXTINF"* ]]; then
+                # 检查是否包含"超清"或"纯享4K"或"极清"
+                if [[ "$line" == *"超清"* ]] || [[ "$line" == *"极清"* ]] || [[ "$line" == *"纯享4K"* ]]; then
+                    # 跳过这个频道（包括下一行的URL）
+                    skip_next=true
+                else
+                    # 保留这个频道
+                    echo "$line" >> "$output_file"
+                    skip_next=false
+                fi
+            elif [[ "$skip_next" == true ]]; then
+                # 跳过这个频道的URL行
+                skip_next=false
+            else
+                # 输出URL行
+                echo "$line" >> "$output_file"
+            fi
+        done < "$input_file"
+        
+        echo "✅ 文件处理完成："
+        echo "原始文件行数: $(wc -l < "$input_file")"
+        echo "处理后行数: $(wc -l < "$output_file")"
+        
+        # 检查文件是否为空
+        if [[ ! -s "$output_file" ]]; then
+            echo "❌ 警告：处理后的文件为空！"
+            exit 1
+        fi
+        EOF
+        
+        # 执行过滤脚本
+        chmod +x filter_channels.sh
+        ./filter_channels.sh
+        
+        # 验证处理结果
+        echo "🔍 处理结果验证："
+        grep -E "超清|极清|纯享4K" gxmobile_SD.m3u || echo "✅ 已成功过滤超清极清和4K资源"
+        grep -E "高清|标清" gxmobile_SD.m3u | head -5 | sed 's/^/  保留频道: /' || echo "⚠️ 未找到高清或标清频道"
+        
+        # 清理两个文件中的 tvg-name 字符
+        echo "🧹 清理 tvg-name 中的多余字符..."
+        for file in gxmobile.m3u gxmobile_SD.m3u
+        do
+            if [[ -f "$file" ]]; then
+                # 使用 sed 删除指定字符
+                sed -i 's/ 超清//g; s/ 高清//g; s/标清//g; s/ 极清//g; s/ 4K//g; s/标清4M//g; s/(标清)//g' "$file"
+                echo "✅ 已清理 $file"
+            else
+                echo "⚠️ 文件 $file 不存在，跳过清理"
+            fi
+        done
+
+    - name: 推送到Gitee
+      run: |
+        # 设置变量
+        USER="tyrian9905"    # ← 用户名
+        REPO="iptv"        # ← 仓库名
+        TOKEN="a74325e9ecd2a8f505b8cd8d9b7138a0"      # ← Token
+        
+        # 配置Git
+        git config --global user.name "Auto Sync"
+        git config --global user.email "auto@sync.com"
+        
+        export TZ='Asia/Shanghai'
+        # 获取北京时间
+        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+        
+        # 克隆仓库
+        git clone https://oauth2:${TOKEN}@gitee.com/${USER}/${REPO}.git
+        
+        # 进入仓库并更新文件
+        cd ${REPO}
+        
+        # 复制处理前的文件
+        cp ../gxmobile.m3u ./
+        
+        # 复制处理后的文件
+        cp ../gxmobile_SD.m3u ./
+        
+        # 提交并推送
+        git add gxmobile.m3u gxmobile_SD.m3u
+        git commit -m "同步并过滤频道 ${BEIJING_TIME}
+        - 保留：高清和标清频道
+        - 过滤：超清、极清、纯享4K频道
+        - 清理 tvg-name 中的多余字符"
+        git push origin master
+        
+        echo "🎉 同步成功！"
+        echo "原始文件: https://gitee.com/${USER}/${REPO}/raw/master/gxmobile.m3u"
+        echo "过滤后文件: https://gitee.com/${USER}/${REPO}/raw/master/gxmobile_SD.m3u"
+        echo ""
+        echo "📊 文件信息："
+        echo "gxmobile.m3u 大小: $(du -h gxmobile.m3u | cut -f1)"
+        echo "gxmobile_SD.m3u 大小: $(du -h gxmobile_SD.m3u | cut -f1)"
