@@ -1,4 +1,5 @@
-name: 同步并精简广西移动M3U至Gitee
+
+name: 处理广西移动M3U至Gitee
 
 on:
   workflow_dispatch:  # 手动触发
@@ -14,7 +15,6 @@ jobs:
     - name: 下载原始IPTV文件
       run: |
         curl -s -o gxmobile.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
-        curl -s -o gx.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
 
     - name: 处理IPTV文件（过滤超清极清和4K资源）
       run: |
@@ -22,11 +22,8 @@ jobs:
         cat > filter_channels.sh << 'EOF'
         #!/bin/bash
         
-        input_file="gx.m3u"
+        input_file="gxmobile.m3u"
         output_file="gxmobile_SD.m3u"
-        
-        # 临时文件
-        temp_file="temp_filtered.m3u"
         
         # 清空输出文件
         > "$output_file"
@@ -80,6 +77,57 @@ jobs:
         grep -E "超清|极清|纯享4K" gxmobile_SD.m3u || echo "✅ 已成功过滤超清极清和4K资源"
         grep -E "高清|标清" gxmobile_SD.m3u | head -5 | sed 's/^/  保留频道: /' || echo "⚠️ 未找到高清或标清频道"
 
+    - name: 清理tvg-name中的指定字符
+      run: |
+        echo "🧹 清理 tvg-name 中的指定字符..."
+        
+        # 清理两个文件
+        for file in gxmobile.m3u gxmobile_SD.m3u
+        do
+            if [[ -f "$file" ]]; then
+                echo "正在处理文件: $file"
+                # 创建临时文件
+                temp_file="${file}.temp"
+                
+                # 处理每一行，只清理tvg-name字段中的指定字符
+                while IFS= read -r line
+                do
+                    if [[ "$line" =~ tvg-name=\"([^\"]*)\" ]]; then
+                        # 提取tvg-name的值
+                        tvg_name="${BASH_REMATCH[1]}"
+                        original_tvg_name="$tvg_name"
+                        
+                        # 严格按照要求删除指定字符（注意空格）
+                        tvg_name="${tvg_name// 超清/}"
+                        tvg_name="${tvg_name// 高清/}"
+                        tvg_name="${tvg_name//标清/}"
+                        tvg_name="${tvg_name// 极清/}"
+                        tvg_name="${tvg_name// 4K/}"
+                        tvg_name="${tvg_name//标清4M/}"
+                        tvg_name="${tvg_name//(标清)/}"
+                        
+                        # 如果tvg-name被修改过，替换整行
+                        if [[ "$tvg_name" != "$original_tvg_name" ]]; then
+                            line="${line//tvg-name=\"$original_tvg_name\"/tvg-name=\"$tvg_name\"}"
+                        fi
+                    fi
+                    echo "$line" >> "$temp_file"
+                done < "$file"
+                
+                # 替换原文件
+                mv "$temp_file" "$file"
+                echo "✅ 已清理 $file"
+                
+                # 显示清理前后的对比
+                echo "清理效果示例："
+                grep -m 3 'tvg-name=' "$file" | while read -r line; do
+                    echo "  清理后: $line"
+                done
+            else
+                echo "⚠️ 文件 $file 不存在，跳过清理"
+            fi
+        done
+
     - name: 推送到Gitee
       run: |
         # 设置变量
@@ -111,7 +159,8 @@ jobs:
         git add gxmobile.m3u gxmobile_SD.m3u
         git commit -m "同步并过滤频道 ${BEIJING_TIME}
         - 保留：高清和标清频道
-        - 过滤：超清、极清、纯享4K频道"
+        - 过滤：超清、极清、纯享4K频道
+        - 清理 tvg-name 中的字符：' 超清'、' 高清'、'标清'、' 极清'、' 4K'、'标清4M'、'(标清)'"
         git push origin master
         
         echo "🎉 同步成功！"
