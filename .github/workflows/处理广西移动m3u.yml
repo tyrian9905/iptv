@@ -100,7 +100,7 @@ jobs:
                         # 严格按照要求删除指定字符（注意空格）
                         tvg_name="${tvg_name// 超清/}"
                         tvg_name="${tvg_name// 高清/}"
-                        tvg_name="${tvg_name//标清/}"
+                        tvg_name="${tvg_name// 标清/}"
                         tvg_name="${tvg_name// 极清/}"
                         tvg_name="${tvg_name// 4K/}"
                         tvg_name="${tvg_name//标清4M/}"
