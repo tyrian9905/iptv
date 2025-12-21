@@ -115,6 +115,7 @@ jobs:
                         tvg_name="${tvg_name// 4K/}"
                         tvg_name="${tvg_name//标清4M/}"
                         tvg_name="${tvg_name//(标清)/}"
+                        tvg_name="${tvg_name//-/}"
                         
                         # 如果tvg-name被修改过，替换整行
                         if [[ "$tvg_name" != "$original_tvg_name" ]]; then
