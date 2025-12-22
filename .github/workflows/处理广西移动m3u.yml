@@ -76,7 +76,7 @@ jobs:
         grep -E "超清|极清|纯享4K" gxmobile_SD.m3u || echo "✅ 已成功过滤超清极清和4K资源"
         grep -E "高清|标清" gxmobile_SD.m3u | head -5 | sed 's/^/  保留频道: /' || echo "⚠️ 未找到高清或标清频道"
 
-    - name: 修改EPG源URL并清理tvg-name字符
+   - name: 修改EPG源URL并清理tvg-name字符
       run: |
         echo "🔄 修改EPG源URL并清理tvg-name字符..."
         
@@ -155,7 +155,7 @@ jobs:
                 # 替换原文件
                 mv "$temp_file" "$file"
     
-		# 增加凤凰卫视频道内容
+				# 增加凤凰卫视频道内容
                 echo "" >> "$file"  # 确保有空行
                 echo '#EXTINF:-1 tvg-name="凤凰中文" tvg-logo="https://raw.githubusercontent.com/wanglindl/TVlogo/main/img/Phoenix1.png" group-title="全国卫视",凤凰中文' >> "$file"
                 echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226331/index.m3u8?servicetype=1' >> "$file"
