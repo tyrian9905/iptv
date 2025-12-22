@@ -14,164 +14,138 @@ jobs:
     - name: 下载原始IPTV文件
       run: |
         curl -s -o gxmobile.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+        echo "✅ 已下载原始文件，大小: $(wc -l < gxmobile.m3u) 行"
 
-    - name: 处理IPTV文件（过滤超清极清和4K资源）
+    - name: 过滤超清极清和4K资源
       run: |
-        # 创建过滤脚本
-        cat > filter_channels.sh << 'EOF'
-        #!/bin/bash
+        echo "🔍 过滤超清、极清和4K资源..."
         
-        input_file="gxmobile.m3u"
-        output_file="gxmobile_SD.m3u"
-        
-        # 清空输出文件
-        > "$output_file"
-        
-        # 逐行处理M3U文件
-        while IFS= read -r line
-        do
-            # 如果是EXTM3U头或空白行，直接输出
-            if [[ "$line" == "#EXTM3U" ]] || [[ -z "$line" ]]; then
-                echo "$line" >> "$output_file"
-                continue
-            fi
-            
-            # 如果是频道信息行（包含tvg-name）
-            if [[ "$line" == "#EXTINF"* ]]; then
-                # 检查是否包含"超清"或"纯享4K"或"极清"
-                if [[ "$line" == *"超清"* ]] || [[ "$line" == *"极清"* ]] || [[ "$line" == *"纯享4K"* ]]; then
-                    # 跳过这个频道（包括下一行的URL）
-                    skip_next=true
-                else
-                    # 保留这个频道
-                    echo "$line" >> "$output_file"
-                    skip_next=false
-                fi
-            elif [[ "$skip_next" == true ]]; then
-                # 跳过这个频道的URL行
-                skip_next=false
-            else
-                # 输出URL行
-                echo "$line" >> "$output_file"
-            fi
-        done < "$input_file"
-        
-        echo "✅ 文件处理完成："
-        echo "原始文件行数: $(wc -l < "$input_file")"
-        echo "处理后行数: $(wc -l < "$output_file")"
-        
-        # 检查文件是否为空
-        if [[ ! -s "$output_file" ]]; then
-            echo "❌ 警告：处理后的文件为空！"
-            exit 1
+        # 使用grep反向过滤更高效
+        if grep -q "超清\|极清\|纯享4K" gxmobile.m3u; then
+          grep -v "超清\|极清\|纯享4K" gxmobile.m3u > gxmobile_SD.m3u
+        else
+          cp gxmobile.m3u gxmobile_SD.m3u
         fi
-        EOF
         
-        # 执行过滤脚本
-        chmod +x filter_channels.sh
-        ./filter_channels.sh
+        echo "✅ 过滤完成"
+        echo "原始文件: $(wc -l < gxmobile.m3u) 行"
+        echo "过滤后: $(wc -l < gxmobile_SD.m3u) 行"
         
-        # 验证处理结果
-        echo "🔍 处理结果验证："
-        grep -E "超清|极清|纯享4K" gxmobile_SD.m3u || echo "✅ 已成功过滤超清极清和4K资源"
-        grep -E "高清|标清" gxmobile_SD.m3u | head -5 | sed 's/^/  保留频道: /' || echo "⚠️ 未找到高清或标清频道"
+        # 验证结果
+        echo "🔍 验证过滤结果："
+        if grep -q "超清\|极清\|纯享4K" gxmobile_SD.m3u; then
+          echo "❌ 过滤失败，仍包含超清/极清/4K内容"
+          exit 1
+        else
+          echo "✅ 已成功过滤超清、极清和4K资源"
+        fi
 
-    - name: 修改EPG源URL并清理tvg-name字符
+    - name: 统一处理M3U文件
       run: |
-        echo "🔄 修改EPG源URL并清理tvg-name字符..."
-        
-        # 定义新的EPG源URL
-        new_epg_url='https://e.erw.cc/e.xml'
+        echo "🔄 统一处理M3U文件（EPG源和名称清理）..."
         
         # 处理两个文件
         for file in gxmobile.m3u gxmobile_SD.m3u
         do
-            if [[ -f "$file" ]]; then
-                echo "正在处理文件: $file"
-                
-                # 创建临时文件
-                temp_file="${file}.temp"
-                
-                # 逐行处理文件
-                while IFS= read -r line
-                do
-                    # 1. 处理EPG源URL（第一行）
-                    if [[ "$line" =~ ^#EXTM3U ]]; then
-                        # 替换x-tvg-url值
-                        line=$(echo "$line" | sed "s|x-tvg-url=\"[^\"]*\"|x-tvg-url=\"$new_epg_url\"|g")
-                    fi
-                    
-                    # 2. 处理tvg-name字段中的指定字符
-                    if [[ "$line" =~ tvg-name=\"([^\"]*)\" ]]; then
-                        # 提取tvg-name的值
-                        tvg_name="${BASH_REMATCH[1]}"
-                        original_tvg_name="$tvg_name"
-                        
-                        # 严格按照要求删除指定字符（注意空格）
-                        tvg_name="${tvg_name// 超清/}"
-                        tvg_name="${tvg_name// 高清/}"
-                        tvg_name="${tvg_name//标清/}"
-                        tvg_name="${tvg_name// 极清/}"
-                        tvg_name="${tvg_name// 4K/}"
-                        tvg_name="${tvg_name//标清4M/}"
-                        tvg_name="${tvg_name//(标清)/}"
-                        tvg_name="${tvg_name//-/}"
-                        
-                        # 如果tvg-name被修改过，替换整行
-                        if [[ "$tvg_name" != "$original_tvg_name" ]]; then
-                            line="${line//tvg-name=\"$original_tvg_name\"/tvg-name=\"$tvg_name\"}"
-                        fi
-                    fi
-                    
-                    echo "$line" >> "$temp_file"
-                done < "$file"
-                
-                # 替换原文件
-                mv "$temp_file" "$file"
-                echo "✅ 已处理 $file"
-            else
-                echo "⚠️ 文件 $file 不存在，跳过处理"
+          if [[ ! -f "$file" ]]; then
+            echo "⚠️ 文件 $file 不存在，跳过"
+            continue
+          fi
+          
+          echo "正在处理: $file"
+          
+          # 一次性使用sed进行所有替换操作，更高效
+          sed -i \
+            -e 's|x-tvg-url="[^"]*"|x-tvg-url="https://baoer.org.cn/e.xml"|g' \
+            -e 's/tvg-name="[^"]* 超清[^"]*"/tvg-name="&"/g' \
+            -e 's/tvg-name="[^"]* 高清[^"]*"/tvg-name="&"/g' \
+            -e 's/tvg-name="珠江卫视"/tvg-name="广东珠江"/g' \
+            -e 's/ 超清//g' \
+            -e 's/ 高清//g' \
+            -e 's/ 标清//g' \
+            -e 's/ 极清//g' \
+            -e 's/ 4K//g' \
+            -e 's/标清4M//g' \
+            -e 's/(标清)//g' \
+            -e 's/-//g' \
+            "$file"
+          
+          # 处理group-title逻辑
+          temp_file="${file}.tmp"
+          > "$temp_file"
+          
+          while IFS= read -r line
+          do
+            # 处理group-title逻辑
+            if [[ "$line" =~ tvg-name=\"([^\"]*)\" ]]; then
+              tvg_name="${BASH_REMATCH[1]}"
+              
+              # 如果tvg-name包含"卫视"，设置group-title为"全国卫视"
+              if [[ "$tvg_name" == *"卫视"* ]]; then
+                if [[ "$line" =~ group-title=\"([^\"]*)\" ]]; then
+                  line="${line//group-title=\"${BASH_REMATCH[1]}\"/group-title=\"全国卫视\"}"
+                else
+                  line="${line}, group-title=\"全国卫视\""
+                fi
+              fi
+              
+              # 将"本地及特色"更改为"广西热播"
+              if [[ "$line" =~ group-title=\"本地及特色\" ]]; then
+                line="${line//group-title=\"本地及特色\"/group-title=\"广西热播\"}"
+              fi
             fi
+            
+            echo "$line" >> "$temp_file"
+          done < "$file"
+          
+          mv "$temp_file" "$file"
+          echo "✅ $file 处理完成"
         done
 
     - name: 推送到Gitee
       run: |
-        # 设置变量
-        USER="tyrian9905"    # ← 用户名
-        REPO="iptv"        # ← 仓库名
-        TOKEN="a74325e9ecd2a8f505b8cd8d9b7138a0"      # ← Token
+        # 配置变量
+        USER="tyrian9905"
+        REPO="iptv"
+        TOKEN="a74325e9ecd2a8f505b8cd8d9b7138a0"
+        BEIJING_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
         
         # 配置Git
         git config --global user.name "Auto Sync"
         git config --global user.email "auto@sync.com"
         
-        export TZ='Asia/Shanghai'
-        # 获取北京时间
-        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-        
         # 克隆仓库
-        git clone https://oauth2:${TOKEN}@gitee.com/${USER}/${REPO}.git
+        echo "📡 克隆仓库..."
+        git clone --depth 1 "https://oauth2:${TOKEN}@gitee.com/${USER}/${REPO}.git"
         
-        # 进入仓库并更新文件
-        cd ${REPO}
-        
-        # 复制处理前的文件
+        # 更新文件
+        cd "${REPO}"
         cp ../gxmobile.m3u ./
-        
-        # 复制处理后的文件
         cp ../gxmobile_SD.m3u ./
         
-        # 提交并推送
+        # 生成提交信息
+        commit_msg="自动同步 ${BEIJING_TIME}
+- 更新EPG源：https://baoer.org.cn/e.xml
+- 清理tvg-name质量标签
+- '珠江卫视' → '广东珠江'
+- '卫视'频道 → group-title='全国卫视'
+- '本地及特色' → '广西热播'
+- 过滤超清/极清/4K资源（仅SD版本）
+原始文件: $(wc -l < ../gxmobile.m3u) 行
+过滤文件: $(wc -l < ../gxmobile_SD.m3u) 行"
+        
+        # 提交推送
+        echo "📝 提交更改..."
         git add gxmobile.m3u gxmobile_SD.m3u
-        git commit -m "同步并过滤频道 ${BEIJING_TIME}
-        - 更新EPG源URL：https://gitee.com/taksssss/tv/raw/main/epg/112114.xml.gz
-        - 清理tvg-name字符：' 超清'、' 高清'、'标清'、' 极清'、' 4K'、'标清4M'、'(标清)'"
+        git commit -m "$commit_msg"
         git push origin master
         
-        echo "🎉 同步成功！"
-        echo "原始文件: https://gitee.com/${USER}/${REPO}/raw/master/gxmobile.m3u"
-        echo "过滤后文件: https://gitee.com/${USER}/${REPO}/raw/master/gxmobile_SD.m3u"
         echo ""
+        echo "🎉 同步完成！"
         echo "📊 文件信息："
-        echo "gxmobile.m3u 大小: $(du -h gxmobile.m3u | cut -f1)"
-        echo "gxmobile_SD.m3u 大小: $(du -h gxmobile_SD.m3u | cut -f1)"
+        echo "  gxmobile.m3u: $(du -h gxmobile.m3u | cut -f1) | $(wc -l < gxmobile.m3u) 行"
+        echo "  gxmobile_SD.m3u: $(du -h gxmobile_SD.m3u | cut -f1) | $(wc -l < gxmobile_SD.m3u) 行"
+        echo ""
+        echo "🔗 访问链接："
+        echo "  完整版：https://gitee.com/${USER}/${REPO}/raw/master/gxmobile.m3u"
+        echo "  标准版：https://gitee.com/${USER}/${REPO}/raw/master/gxmobile_SD.m3u"
