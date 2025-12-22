@@ -123,23 +123,18 @@ jobs:
         # 进入仓库并更新文件
         cd ${REPO}
         
-        # 复制处理前的文件
-        cp ../gxmobile.m3u ./
-        
         # 复制处理后的文件
         cp ../gxmobile_SD.m3u ./
         
         # 提交并推送
-        git add gxmobile.m3u gxmobile_SD.m3u
+        git add gxmobile_SD.m3u
         git commit -m "同步并过滤频道 ${BEIJING_TIME}
         - 更新EPG源
         - 清理tvg-name字符：' 超清'、' 高清'、'标清'、' 极清'、' 4K'、'标清4M'、'(标清)'"
         git push origin master
         
         echo "🎉 同步成功！"
-        echo "原始文件: https://gitee.com/${USER}/${REPO}/raw/master/gxmobile.m3u"
         echo "过滤后文件: https://gitee.com/${USER}/${REPO}/raw/master/gxmobile_SD.m3u"
         echo ""
         echo "📊 文件信息："
-        echo "gxmobile.m3u 大小: $(du -h gxmobile.m3u | cut -f1)"
         echo "gxmobile_SD.m3u 大小: $(du -h gxmobile_SD.m3u | cut -f1)"
