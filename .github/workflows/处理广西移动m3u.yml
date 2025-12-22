@@ -102,39 +102,44 @@ jobs:
           echo "✅ $file 处理完成"
         done
 
-    - name: 推送到Gitee
+ - name: 推送到Gitee
       run: |
-        # 配置变量
-        USER="tyrian9905"
-        REPO="iptv"
-        TOKEN="a74325e9ecd2a8f505b8cd8d9b7138a0"
-        BEIJING_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
+        # 设置变量
+        USER="tyrian9905"    # ← 用户名
+        REPO="iptv"        # ← 仓库名
+        TOKEN="a74325e9ecd2a8f505b8cd8d9b7138a0"      # ← Token
         
         # 配置Git
         git config --global user.name "Auto Sync"
         git config --global user.email "auto@sync.com"
         
-        # 克隆仓库
-        echo "📡 克隆仓库..."
-        git clone --depth 1 "https://oauth2:${TOKEN}@gitee.com/${USER}/${REPO}.git"
+        export TZ='Asia/Shanghai'
+        # 获取北京时间
+        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
-        # 更新文件
-        cd "${REPO}"
+        # 克隆仓库
+        git clone https://oauth2:${TOKEN}@gitee.com/${USER}/${REPO}.git
+        
+        # 进入仓库并更新文件
+        cd ${REPO}
+        
+        # 复制处理前的文件
         cp ../gxmobile.m3u ./
+        
+        # 复制处理后的文件
         cp ../gxmobile_SD.m3u ./
         
-        # 提交推送
-        echo "📝 提交更改..."
+        # 提交并推送
         git add gxmobile.m3u gxmobile_SD.m3u
-        git commit -m "$commit_msg"
+        git commit -m "同步并过滤频道 ${BEIJING_TIME}
+        - 更新EPG源
+        - 清理tvg-name字符：' 超清'、' 高清'、'标清'、' 极清'、' 4K'、'标清4M'、'(标清)'"
         git push origin master
         
+        echo "🎉 同步成功！"
+        echo "原始文件: https://gitee.com/${USER}/${REPO}/raw/master/gxmobile.m3u"
+        echo "过滤后文件: https://gitee.com/${USER}/${REPO}/raw/master/gxmobile_SD.m3u"
         echo ""
-        echo "🎉 同步完成！"
         echo "📊 文件信息："
-        echo "  gxmobile.m3u: $(du -h gxmobile.m3u | cut -f1) | $(wc -l < gxmobile.m3u) 行"
-        echo "  gxmobile_SD.m3u: $(du -h gxmobile_SD.m3u | cut -f1) | $(wc -l < gxmobile_SD.m3u) 行"
-        echo ""
-        echo "🔗 访问链接："
-        echo "  完整版：https://gitee.com/${USER}/${REPO}/raw/master/gxmobile.m3u"
-        echo "  标准版：https://gitee.com/${USER}/${REPO}/raw/master/gxmobile_SD.m3u"
+        echo "gxmobile.m3u 大小: $(du -h gxmobile.m3u | cut -f1)"
+        echo "gxmobile_SD.m3u 大小: $(du -h gxmobile_SD.m3u | cut -f1)"
