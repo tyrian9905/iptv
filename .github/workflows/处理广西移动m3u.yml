@@ -123,16 +123,6 @@ jobs:
         cp ../gxmobile.m3u ./
         cp ../gxmobile_SD.m3u ./
         
-        # 生成提交信息
-- 更新EPG源
-- 清理tvg-name质量标签
-- '珠江卫视' → '广东珠江'
-- '卫视'频道 → group-title='全国卫视'
-- '本地及特色' → '广西热播'
-- 过滤超清/极清/4K资源（仅SD版本）
-原始文件: $(wc -l < ../gxmobile.m3u) 行
-过滤文件: $(wc -l < ../gxmobile_SD.m3u) 行"
-        
         # 提交推送
         echo "📝 提交更改..."
         git add gxmobile.m3u gxmobile_SD.m3u
