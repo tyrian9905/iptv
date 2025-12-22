@@ -81,7 +81,7 @@ jobs:
         echo "🔄 修改EPG源URL并清理tvg-name字符..."
         
         # 定义新的EPG源URL
-        new_epg_url='https://gitee.com/taksssss/tv/raw/main/epg/112114.xml.gz'
+        new_epg_url='https://e.erw.cc/e.xml'
         
         # 处理两个文件
         for file in gxmobile.m3u gxmobile_SD.m3u
