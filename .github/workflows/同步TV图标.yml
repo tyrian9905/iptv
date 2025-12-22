@@ -2,389 +2,75 @@ name: Sync TV Logos to Gitee
 
 on:
   schedule:
-    # 每天UTC时间00:00运行（北京时间08:00）
-    - cron: '0 0 * * *'
-  workflow_dispatch:  # 允许手动触发
-  push:
-    branches:
-      - main
+    - cron: '0 0 * * *'  # 每天UTC 00:00运行
+  workflow_dispatch:      # 允许手动触发
 
 env:
-  # ========== 在这里配置你的变量 ==========
-  GITEE_USERNAME: "tyrian9905"           # 你的Gitee用户名
-  GITEE_TOKEN: "a74325e9ecd2a8f505b8cd8d9b7138a0"   # 你的Gitee访问令牌
-  # =======================================
-  
-  # 固定配置（不需要修改）
-  GITHUB_SOURCE_URL: "https://raw.githubusercontent.com/fanmingming/live/main/tv/"
+  GITEE_USERNAME: "tyrian9905"
+  GITEE_TOKEN: "a74325e9ecd2a8f505b8cd8d9b7138a0"  # 替换为你的实际令牌
+  SOURCE_URL: "https://raw.githubusercontent.com/fanmingming/live/main/tv/"
   TARGET_DIR: "tvlogo"
 
 jobs:
-  sync-logos:
+  sync:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout current repository
-      uses: actions/checkout@v4
-      
-    - name: Sync PNG files from GitHub to Gitee
-      env:
-        # 使用上面定义的变量
-        GITEE_USERNAME: ${{ env.GITEE_USERNAME }}
-        GITEE_TOKEN: ${{ env.GITEE_TOKEN }}
-        GITHUB_SOURCE_URL: ${{ env.GITHUB_SOURCE_URL }}
-        TARGET_DIR: ${{ env.TARGET_DIR }}
+    - name: Sync TV Logos
       run: |
-        # ============================================
-        # TV Logo 同步脚本 (纯Shell版本)
-        # ============================================
+        # 基本配置
+        USER="${{ env.GITEE_USERNAME }}"
+        TOKEN="${{ env.GITEE_TOKEN }}"
+        REPO_URL="https://${USER}:${TOKEN}@gitee.com/tyrian9905/iptv.git"
+        WORK_DIR="/tmp/tv_work"
         
-        # 配置变量
-        SOURCE_URL="$GITHUB_SOURCE_URL"
-        GITEE_USER="$GITEE_USERNAME"
-        GITEE_TOKEN="$GITEE_TOKEN"
-        TARGET_DIR="$TARGET_DIR"
-        GITEE_REPO_URL="https://${GITEE_USER}:${GITEE_TOKEN}@gitee.com/tyrian9905/iptv.git"
-        WORK_DIR="/tmp/tvlogos_work_$(date +%s)"
-        
-        # 颜色定义
-        RED='\033[0;31m'
-        GREEN='\033[0;32m'
-        YELLOW='\033[1;33m'
-        BLUE='\033[0;34m'
-        NC='\033[0m' # No Color
-        
-        # 输出样式函数
-        log_info() {
-          echo -e "${BLUE}[INFO]${NC} $1"
-        }
-        
-        log_success() {
-          echo -e "${GREEN}[SUCCESS]${NC} $1"
-        }
-        
-        log_warning() {
-          echo -e "${YELLOW}[WARNING]${NC} $1"
-        }
-        
-        log_error() {
-          echo -e "${RED}[ERROR]${NC} $1"
-        }
-        
-        # 验证配置
-        validate_config() {
-          log_info "验证配置..."
-          
-          if [ -z "$GITEE_USER" ]; then
-            log_error "GITEE_USERNAME 未设置"
-            return 1
-          fi
-          
-          if [ -z "$GITEE_TOKEN" ]; then
-            log_error "GITEE_TOKEN 未设置"
-            return 1
-          fi
-          
-          if [ "$GITEE_TOKEN" = "your_gitee_token_here" ]; then
-            log_error "请修改 GITEE_TOKEN 为你的实际令牌"
-            return 1
-          fi
-          
-          log_success "配置验证通过"
-          log_info "Gitee用户名: $GITEE_USER"
-          log_info "源地址: $SOURCE_URL"
-          return 0
-        }
-        
-        # 创建临时工作目录
-        create_work_dir() {
-          log_info "创建临时工作目录..."
-          mkdir -p "$WORK_DIR"
-          cd "$WORK_DIR" || {
-            log_error "无法进入工作目录"
-            return 1
-          }
-        }
+        # 创建临时目录
+        rm -rf $WORK_DIR
+        mkdir -p $WORK_DIR
+        cd $WORK_DIR
         
         # 克隆Gitee仓库
-        clone_gitee_repo() {
-          log_info "克隆Gitee仓库..."
-          echo "仓库URL: https://${GITEE_USER}:***@gitee.com/tyrian9905/iptv.git"
-          
-          if git clone "$GITEE_REPO_URL" iptv_repo 2>&1; then
-            log_success "Gitee仓库克隆成功"
-            return 0
-          else
-            log_error "Gitee仓库克隆失败"
-            return 1
-          fi
-        }
+        echo "克隆仓库..."
+        git clone $REPO_URL
+        cd iptv
         
-        # 获取PNG文件列表
-        get_png_files() {
-          log_info "从GitHub获取PNG文件列表..."
-          
-          # 尝试从GitHub Pages获取文件列表
-          local html_content
-          if ! html_content=$(curl -s -L --connect-timeout 30 "$SOURCE_URL"); then
-            log_error "无法访问源地址: $SOURCE_URL"
-            return 1
-          fi
-          
-          # 使用grep提取PNG文件名
-          PNG_FILES=$(echo "$html_content" | grep -o 'href="[^"]*\.png"' | sed 's/href="//g' | sed 's/"//g' | sort | uniq)
-          
-          if [ -z "$PNG_FILES" ]; then
-            log_warning "未能从HTML提取文件列表，尝试备选方法..."
-            PNG_FILES=$(echo "$html_content" | grep -o '[a-zA-Z0-9_\-]*\.png' | sort | uniq)
-          fi
-          
-          if [ -z "$PNG_FILES" ]; then
-            log_warning "使用预定义的文件列表..."
-            # 常见的电视台logo文件名
-            PNG_FILES="cctv1.png cctv2.png cctv3.png cctv4.png cctv5.png cctv5+.png cctv6.png cctv7.png cctv8.png cctv9.png cctv10.png cctv11.png cctv12.png cctv13.png cctv14.png cctv15.png cctv16.png cctv17.png cctv4k.png cctv8k.png cgtn.png 北京卫视.png 湖南卫视.png 浙江卫视.png 江苏卫视.png 东方卫视.png 安徽卫视.png 重庆卫视.png 广东卫视.png 深圳卫视.png 黑龙江卫视.png 天津卫视.png 山东卫视.png 湖北卫视.png 四川卫视.png"
-          fi
-          
-          FILE_COUNT=$(echo "$PNG_FILES" | wc -w)
-          if [ "$FILE_COUNT" -eq 0 ]; then
-            log_error "未找到任何PNG文件"
-            return 1
-          fi
-          
-          log_success "找到 $FILE_COUNT 个PNG文件"
-          echo "文件列表:"
-          echo "$PNG_FILES" | tr ' ' '\n' | head -20
-          if [ "$FILE_COUNT" -gt 20 ]; then
-            echo "... 等共 $FILE_COUNT 个文件"
-          fi
-          
-          echo "$PNG_FILES"
-          return 0
-        }
+        # 创建目标目录
+        mkdir -p ${{ env.TARGET_DIR }}
+        cd ${{ env.TARGET_DIR }}
         
-        # 下载PNG文件
-        download_png_files() {
-          local files="$1"
-          local target_dir="$2"
-          
-          log_info "开始下载PNG文件..."
-          mkdir -p "$target_dir"
-          
-          DOWNLOAD_COUNT=0
-          FAILED_COUNT=0
-          TOTAL_FILES=$(echo "$files" | wc -w)
-          CURRENT=0
-          
-          for file in $files; do
-            CURRENT=$((CURRENT + 1))
-            # 清理文件名
-            clean_file=$(echo "$file" | sed 's|^\./||')
-            url="${SOURCE_URL}${clean_file}"
-            output_path="${target_dir}/${clean_file}"
-            
-            echo -ne "[$CURRENT/$TOTAL_FILES] 下载: $clean_file ... "
-            
-            # 使用curl下载文件
-            if curl -s -L -o "$output_path" "$url" --connect-timeout 30 --max-time 60; then
-              # 检查文件是否有效
-              if [ -s "$output_path" ]; then
-                file_size=$(stat -c%s "$output_path" 2>/dev/null || stat -f%z "$output_path" 2>/dev/null)
-                echo -e "${GREEN}✓${NC} ($file_size bytes)"
-                ((DOWNLOAD_COUNT++))
-              else
-                echo -e "${YELLOW}⚠ 空文件${NC}"
-                rm -f "$output_path"
-                ((FAILED_COUNT++))
-              fi
-            else
-              echo -e "${RED}✗ 失败${NC}"
-              ((FAILED_COUNT++))
-            fi
-          done
-          
-          log_info "下载统计: $DOWNLOAD_COUNT 成功, $FAILED_COUNT 失败"
-          echo "$DOWNLOAD_COUNT"
-        }
+        # 获取PNG文件列表（简单方法）
+        echo "获取文件列表..."
+        PNG_FILES="cctv1.png cctv2.png cctv3.png cctv4.png cctv5.png cctv6.png cctv7.png cctv8.png cctv9.png cctv10.png cctv11.png cctv12.png cctv13.png cctv14.png cctv15.png cctv16.png cctv17.png 北京卫视.png 湖南卫视.png 浙江卫视.png 江苏卫视.png 东方卫视.png 安徽卫视.png 重庆卫视.png 广东卫视.png 深圳卫视.png"
         
-        # Git配置和提交
-        git_commit_and_push() {
-          local repo_path="$1"
-          local target_dir="$2"
-          local downloaded_count="$3"
-          
-          cd "$repo_path" || {
-            log_error "无法进入仓库目录"
-            return 1
-          }
-          
-          # 配置Git用户
-          log_info "配置Git用户信息..."
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          
-          # 检查是否有文件变更
-          if git diff-index --quiet HEAD -- 2>/dev/null; then
-            log_info "没有文件变更，跳过提交"
-            return 0
-          fi
-          
-          # 添加文件
-          log_info "添加文件到Git..."
-          if git add "$target_dir/" 2>&1; then
-            log_success "文件添加成功"
-          else
-            log_error "添加文件失败"
-            return 1
-          fi
-          
-          # 提交
-          COMMIT_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-          COMMIT_MESSAGE="🤖 TV Logo自动同步
-
-同步时间: $COMMIT_TIME
-同步文件数: $downloaded_count
-源地址: $SOURCE_URL
-
-由GitHub Actions自动同步"
-          
-          log_info "提交更改..."
-          if git commit -m "$COMMIT_MESSAGE" 2>&1; then
-            log_success "提交成功"
-          else
-            log_error "提交失败"
-            return 1
-          fi
-          
-          # 推送
-          log_info "推送到Gitee仓库..."
-          if git push origin main 2>&1; then
-            log_success "推送成功"
-            return 0
-          else
-            log_warning "推送失败，尝试强制推送..."
-            if git push origin main --force 2>&1; then
-              log_success "强制推送成功"
-              return 0
-            else
-              log_error "推送完全失败"
-              return 1
-            fi
-          fi
-        }
+        # 下载文件
+        echo "下载文件..."
+        for file in $PNG_FILES; do
+          echo "下载: $file"
+          curl -s -L -o "$file" "${{ env.SOURCE_URL }}$file" || true
+        done
         
-        # 主函数
-        main() {
-          echo "========================================"
-          log_info "开始TV Logo同步任务"
-          echo "========================================"
-          log_info "配置信息:"
-          log_info "- Gitee用户名: $GITEE_USER"
-          log_info "- 源地址: $SOURCE_URL"
-          log_info "- 目标目录: $TARGET_DIR"
-          echo ""
-          
-          # 验证配置
-          if ! validate_config; then
-            exit 1
-          fi
-          
-          # 1. 创建工作目录
-          if ! create_work_dir; then
-            exit 1
-          fi
-          
-          # 2. 克隆Gitee仓库
-          if ! clone_gitee_repo; then
-            log_error "请检查:"
-            log_error "1. GITEE_TOKEN是否正确"
-            log_error "2. 令牌是否有仓库访问权限"
-            log_error "3. Gitee仓库是否存在"
-            exit 1
-          fi
-          
-          # 进入仓库目录
-          cd iptv_repo || exit 1
-          
-          # 3. 获取PNG文件列表
-          PNG_FILES=$(get_png_files)
-          if [ $? -ne 0 ]; then
-            exit 1
-          fi
-          
-          # 4. 下载文件
-          DOWNLOAD_COUNT=$(download_png_files "$PNG_FILES" "$TARGET_DIR")
-          
-          # 5. Git操作
-          if [ "$DOWNLOAD_COUNT" -gt 0 ]; then
-            if git_commit_and_push "$(pwd)" "$TARGET_DIR" "$DOWNLOAD_COUNT"; then
-              echo ""
-              echo "========================================"
-              log_success "🎉 TV Logo同步任务完成！"
-              echo "========================================"
-              log_info "同步统计:"
-              log_info "- 尝试下载文件: $(echo "$PNG_FILES" | wc -w)"
-              log_info "- 成功下载文件: $DOWNLOAD_COUNT"
-              log_info "- 目标仓库: https://gitee.com/tyrian9905/iptv"
-              log_info "- 目标目录: $TARGET_DIR"
-              log_info "- 查看结果: https://gitee.com/tyrian9905/iptv/tree/main/$TARGET_DIR"
-              echo ""
-            else
-              log_error "同步任务完成但Git操作失败"
-              exit 1
-            fi
-          else
-            log_warning "没有成功下载任何文件，跳过提交"
-          fi
-          
-          # 6. 清理工作目录（可选）
-          echo ""
-          log_info "工作目录: $WORK_DIR"
-          log_info "任务结束时间: $(date)"
-        }
+        # 配置Git
+        cd ..
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
         
-        # 执行主函数
-        echo "========================================"
-        echo "TV Logo同步脚本开始执行"
-        echo "========================================"
-        
-        if main; then
-          echo "========================================"
-          log_success "脚本执行完成"
-          echo "========================================"
-          exit 0
+        # 提交
+        git add .
+        if git diff-index --quiet HEAD --; then
+          echo "没有变化"
         else
-          echo "========================================"
-          log_error "脚本执行失败"
-          echo "========================================"
-          exit 1
+          echo "提交更改..."
+          git commit -m "自动同步TV Logo $(date '+%Y-%m-%d %H:%M:%S')"
+          git push
+          echo "同步完成"
         fi
         
-    - name: Success Notification
+    - name: 完成通知
       if: success()
       run: |
-        echo "✅ TV Logo同步任务成功完成！"
-        echo ""
-        echo "📊 同步统计:"
-        echo "-----------------------------"
-        echo "• 源地址: https://raw.githubusercontent.com/fanmingming/live/main/tv/"
-        echo "• 目标地址: https://gitee.com/tyrian9905/iptv/tree/main/tvlogo"
-        echo "• 下次运行: 明天UTC 00:00 (北京时间08:00)"
-        echo "• 查看日志: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        echo "✅ 同步完成"
+        echo "查看: https://gitee.com/tyrian9905/iptv/tree/main/tvlogo"
         
-    - name: Failure Notification
+    - name: 失败通知
       if: failure()
-      run: |
-        echo "❌ TV Logo同步任务失败！"
-        echo ""
-        echo "🔍 问题排查:"
-        echo "-----------------------------"
-        echo "1. 检查GITEE_TOKEN是否正确配置"
-        echo "2. 检查GITEE_USERNAME是否正确"
-        echo "3. 验证源地址是否可访问:"
-        echo "   curl -I https://raw.githubusercontent.com/fanmingming/live/main/tv/"
-        echo "4. 检查Gitee仓库是否有写入权限"
-        echo "5. 查看详细日志获取更多信息"
-        echo ""
-        echo "📋 当前配置:"
-        echo "- GITEE_USERNAME: ${{ env.GITEE_USERNAME }}"
-        echo "- GITEE_TOKEN: $(if [ -n '${{ env.GITEE_TOKEN }}' ]; then echo '已设置'; else echo '未设置'; fi)"
+      run: echo "❌ 同步失败"
