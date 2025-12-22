@@ -1,4 +1,4 @@
-name: 处理广西移动M3U至Gitee
+name: 处理广西移动M3U同步至Gitee
 
 on:
   workflow_dispatch:  # 手动触发
