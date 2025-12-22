@@ -130,7 +130,7 @@ jobs:
                         tvg_name="${BASH_REMATCH[1]}"
                         
                         # 检查tvg-name是否包含"卫视"
-                        if [[ "$tvg_name" == *"卫视"* ]]; then
+                        if [[ "$tvg_name" == *"卫视"* ]] || [[ "$tvg_name" == *"广东珠江"* ]] ; then
                             # 如果存在group-title，替换为"全国卫视"
                             if [[ "$line" =~ group-title=\"([^\"]*)\" ]]; then
                                 # 替换现有的group-title
