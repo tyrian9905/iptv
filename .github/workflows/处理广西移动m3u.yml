@@ -77,23 +77,27 @@ jobs:
           while IFS= read -r line
           do
             # 处理group-title逻辑
-            if [[ "$line" =~ tvg-name=\"([^\"]*)\" ]]; then
-              tvg_name="${BASH_REMATCH[1]}"
-              
-              # 如果tvg-name包含"卫视"，设置group-title为"全国卫视"
-              if [[ "$tvg_name" == *"卫视"* ]]; then
-                if [[ "$line" =~ group-title=\"([^\"]*)\" ]]; then
-                  line="${line//group-title=\"${BASH_REMATCH[1]}\"/group-title=\"全国卫视\"}"
-                else
-                  line="${line}, group-title=\"全国卫视\""
-                fi
-              fi
-              
-              # 将"本地及特色"更改为"广西热播"
-              if [[ "$line" =~ group-title=\"本地及特色\" ]]; then
-                line="${line//group-title=\"本地及特色\"/group-title=\"广西热播\"}"
-              fi
-            fi
+                    if [[ "$line" =~ tvg-name=\"([^\"]*)\" ]]; then
+                        # 提取tvg-name的值
+                        tvg_name="${BASH_REMATCH[1]}"
+                        
+                        # 检查tvg-name是否包含"卫视"
+                        if [[ "$tvg_name" == *"卫视"* ]]; then
+                            # 如果存在group-title，替换为"全国卫视"
+                            if [[ "$line" =~ group-title=\"([^\"]*)\" ]]; then
+                                # 替换现有的group-title
+                                line="${line//group-title=\"${BASH_REMATCH[1]}\"/group-title=\"全国卫视\"}"
+                            else
+                                # 如果没有group-title，添加一个
+                                line="${line}, group-title=\"全国卫视\""
+                            fi
+                        fi
+                    fi
+                    
+                    # 4. 将"本地及特色"更改为"广西热播"
+                    if [[ "$line" =~ group-title=\"本地及特色\" ]]; then
+                        line="${line//group-title=\"本地及特色\"/group-title=\"广西热播\"}"
+                    fi
             
             echo "$line" >> "$temp_file"
           done < "$file"
