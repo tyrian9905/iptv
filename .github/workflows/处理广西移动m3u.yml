@@ -124,8 +124,7 @@ jobs:
         cp ../gxmobile_SD.m3u ./
         
         # 生成提交信息
-        commit_msg="自动同步 ${BEIJING_TIME}
-- 更新EPG源：https://baoer.org.cn/e.xml
+- 更新EPG源
 - 清理tvg-name质量标签
 - '珠江卫视' → '广东珠江'
 - '卫视'频道 → group-title='全国卫视'
