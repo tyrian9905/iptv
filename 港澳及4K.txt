@@ -1,3 +1,6 @@
+#EXTINF:-1 tvg-name="武搏世界" tvg-logo="https://gitee.com/lee9108/tv/raw/master/img/武搏世界.png" group-title="精彩热播",武搏世界 
+http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225758/index.m3u8?servicetype=1?servicetype=3
+
 #EXTINF:-1 tvg-name="咪咕" tvg-logo="https://gitee.com/lee9108/tv/raw/master/img/咪咕4K.png" group-title="4K频道",咪咕4K
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225863/index.m3u8?servicetype=1?servicetype=3
 
@@ -123,6 +126,3 @@ http://iot-mqqt.111yao.cn:8080/live/diyp_xingkong.m3u8
 
 #EXTINF:-1 tvg-name="星空音乐" tvg-logo="https://gitee.com/lee9108/tv/raw/master/img/星空音乐.png" group-title="港澳热播",星空音乐
 http://iot-mqqt.111yao.cn:8080/live/diyp_channelv.m3u8
-
-#EXTINF:-1 tvg-name="武搏世界" tvg-logo="https://gitee.com/lee9108/tv/raw/master/img/武搏世界.png" group-title="精彩热播",武搏世界 
-http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225758/index.m3u8?servicetype=1
