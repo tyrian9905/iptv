@@ -7,89 +7,89 @@ http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226324/index.m3u8?service
 #EXTINF:-1 tvg-name="凤凰香港" tvg-logo="https://raw.githubusercontent.com/wanglindl/TVlogo/main/img/Phoenix3.png" group-title="全国卫视",凤凰香港
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226321/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界1 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界1
+#EXTINF:-1 tvg-name="咪视界1" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界1
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225771/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界2 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界2
+#EXTINF:-1 tvg-name="咪视界2" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界2
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225774/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界3 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界3
+#EXTINF:-1 tvg-name="咪视界3" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界3
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225777/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界4 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界4
+#EXTINF:-1 tvg-name="咪视界4" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界4
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225780/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界5 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界5
+#EXTINF:-1 tvg-name="咪视界5" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界5
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225783/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界6 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界6
+#EXTINF:-1 tvg-name="咪视界6" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界6
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225786/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界7 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界7
+#EXTINF:-1 tvg-name="咪视界7" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界7
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225792/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界8 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界8
+#EXTINF:-1 tvg-name="咪视界8" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界8
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225793/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界9 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界9
+#EXTINF:-1 tvg-name="咪视界9" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界9
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225796/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界10 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界10
+#EXTINF:-1 tvg-name="咪视界10" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界10
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225799/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界11 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界11
+#EXTINF:-1 tvg-name="咪视界11" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界11
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225802/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界12 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界12
+#EXTINF:-1 tvg-name="咪视界12" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界12
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225805/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界13 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界13
+#EXTINF:-1 tvg-name="咪视界13" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界13
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225808/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界14 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界14
+#EXTINF:-1 tvg-name="咪视界14" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界14
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225811/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界15 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界15
+#EXTINF:-1 tvg-name="咪视界15" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界15
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225814/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界16 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界16
+#EXTINF:-1 tvg-name="咪视界16" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界16
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225817/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界17 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界17
+#EXTINF:-1 tvg-name="咪视界17" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界17
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225820/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界18 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界18
+#EXTINF:-1 tvg-name="咪视界18" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界18
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225834/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界19 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界19
+#EXTINF:-1 tvg-name="咪视界19" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界19
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225837/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界20 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界20
+#EXTINF:-1 tvg-name="咪视界20" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界20
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225839/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界21 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界21
+#EXTINF:-1 tvg-name="咪视界21" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界21
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225848/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界22 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界22
+#EXTINF:-1 tvg-name="咪视界22" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界22
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225850/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界23 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界23
+#EXTINF:-1 tvg-name="咪视界23" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界23
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225851/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界24 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界24
+#EXTINF:-1 tvg-name="咪视界24" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界24
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225853/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界25 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界25
+#EXTINF:-1 tvg-name="咪视界25" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界25
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225854/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界26 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界26
+#EXTINF:-1 tvg-name="咪视界26" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界26
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225857/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界27 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界27
+#EXTINF:-1 tvg-name="咪视界27" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界27
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225860/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界28 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界28
+#EXTINF:-1 tvg-name="咪视界28" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界28
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225893/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="咪视界29 " tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界29
+#EXTINF:-1 tvg-name="咪视界29" tvg-logo="https://gitee.com/tyrian9905/iptv/raw/master/TVLOGO/咪咕.png" group-title="咪视界",咪视界29
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225896/index.m3u8?servicetype=1?servicetype=3
