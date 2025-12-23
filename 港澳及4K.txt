@@ -1,9 +1,6 @@
 #EXTINF:-1 tvg-name="咪咕" tvg-logo="https://gitee.com/lee9108/tv/raw/master/img/咪咕4K.png" group-title="4K频道",咪咕4K
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225863/index.m3u8?servicetype=1?servicetype=3
 
-#EXTINF:-1 tvg-name="纯享4K" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/HD-20M-2160P-chunxiang4k/CX4KYXTB20220126.png" group-title="4K频道",纯享4K
-http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221225726/index.m3u8?servicetype=1?servicetype=3
-
 #EXTINF:-1 tvg-name="北京卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/HD-8000k-1080P-beijingstv/GX0801BJWSTB.png" group-title="4K频道",北京卫视4K
 http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226333/index.m3u8?servicetype=1?servicetype=3
 
