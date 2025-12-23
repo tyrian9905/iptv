@@ -100,14 +100,23 @@ jobs:
                         # 替换x-tvg-url值
                         line=$(echo "$line" | sed "s|x-tvg-url=\"[^\"]*\"|x-tvg-url=\"$new_epg_url\"|g")
                     fi
+
+                    # 2. 将"本地及特色"更改为"广西热播"
+                    if [[ "$line" =~ group-title=\"本地及特色\" ]]; then
+                        line="${line//group-title=\"本地及特色\"/group-title=\"广西热播\"}"
+                    fi
+
+                    # 3. 添加回放功能
+                    if [[ "$line" == *"?servicetype=1" ]]; then
+                        line="${line//?servicetype=1/?servicetype=1?servicetype=3}"
+                    fi
                     
-                    # 2. 处理tvg-name字段中的指定字符
                     if [[ "$line" =~ tvg-name=\"([^\"]*)\" ]]; then
                         # 提取tvg-name的值
                         tvg_name="${BASH_REMATCH[1]}"
                         original_tvg_name="$tvg_name"
-                        
-                        # 严格按照要求删除指定字符（注意空格）
+
+                        # 4. 严格按照要求删除指定字符（注意空格）
                         tvg_name="${tvg_name// 超清/}"
                         tvg_name="${tvg_name// 高清/}"
                         tvg_name="${tvg_name// 标清/}"
@@ -116,22 +125,14 @@ jobs:
                         tvg_name="${tvg_name//标清4M/}"
                         tvg_name="${tvg_name//(标清)/}"
                         tvg_name="${tvg_name//-/}"
-                        
-                        # 新增：将"珠江卫视"改为"广东珠江"
-                        tvg_name="${tvg_name//珠江卫视/广东珠江}"
+                        tvg_name="${tvg_name//珠江卫视/广东珠江}" # 将"珠江卫视"改为"广东珠江"
                         
                         # 如果tvg-name被修改过，替换整行
                         if [[ "$tvg_name" != "$original_tvg_name" ]]; then
                             line="${line//tvg-name=\"$original_tvg_name\"/tvg-name=\"$tvg_name\"}"
                         fi
-                    fi
-                    
-                    # 3. 检查tvg-name是否包含"卫视"并更新group-title为"全国卫视"
-                    if [[ "$line" =~ tvg-name=\"([^\"]*)\" ]]; then
-                        # 提取tvg-name的值
-                        tvg_name="${BASH_REMATCH[1]}"
                         
-                        # 检查tvg-name是否包含"卫视"
+                        # 5. 检查tvg-name是否包含"卫视"并更新group-title为"全国卫视"
                         if [[ "$tvg_name" == *"卫视"* ]] || [[ "$tvg_name" == *"广东珠江"* ]] ; then
                             # 如果存在group-title，替换为"全国卫视"
                             if [[ "$line" =~ group-title=\"([^\"]*)\" ]]; then
@@ -142,25 +143,10 @@ jobs:
                                 line="${line}, group-title=\"全国卫视\""
                             fi
                         fi
-                    fi
-                    
-                    # 4. 将"本地及特色"更改为"广西热播"
-                    if [[ "$line" =~ group-title=\"本地及特色\" ]]; then
-                        line="${line//group-title=\"本地及特色\"/group-title=\"广西热播\"}"
-                    fi
 
-                    # 5. 添加回放功能
-                    if [[ "$line" == *"?servicetype=1" ]]; then
-                        line="${line//?servicetype=1/?servicetype=1?servicetype=3}"
-                    fi
-
-                    # 6. 添加个别节目的高清源
-                    if [[ "$line" =~ tvg-name=\"([^\"]*)\" ]]; then
-                        # 提取tvg-name的值
-                        tvg_name="${BASH_REMATCH[1]}"
-                        
+                        # 6. 添加个别节目的高清源
                         if [[ "$tvg_name" == "中国国际电视台新闻频道"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
-                            echo '#EXTINF:-1 tvg-name="CGTN新闻频道" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/SD-4000k-576P-cctvennews/GXZGGJXWTB0731.png" group-title="央视热播",中国国际电视台新闻频道' >> "$temp_file"
+                            echo '#EXTINF:-1 tvg-name="中国国际电视台新闻频道" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/SD-4000k-576P-cctvennews/GXZGGJXWTB0731.png" group-title="央视热播",中国国际电视台新闻频道' >> "$temp_file"
                             echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226417/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
                             echo "" >> "$temp_file"  # 确保有空行
                         fi
@@ -170,15 +156,61 @@ jobs:
                             echo "" >> "$temp_file"  # 确保有空行
                         fi
                         if [[ "$tvg_name" == "陕西卫视"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
-                            echo '#EXTINF:-1 tvg-name="厦门卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/shanxi1stv/GX0801SXWSTB.png" group-title="全国卫视",陕西卫视' >> "$temp_file"
+                            echo '#EXTINF:-1 tvg-name="陕西卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/shanxi1stv/GX0801SXWSTB.png" group-title="全国卫视",陕西卫视' >> "$temp_file"
                             echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226400/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
                             echo "" >> "$temp_file"  # 确保有空行
                         fi
+                        if [[ "$tvg_name" == "宁夏卫视"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
+                            echo '#EXTINF:-1 tvg-name="宁夏卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/ningxiastv/GX0801NXWSTB.png" group-title="全国卫视",宁夏卫视' >> "$temp_file"
+                            echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226413/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
+                            echo "" >> "$temp_file"  # 确保有空行
+                        fi
                         if [[ "$tvg_name" == "吉林卫视"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
-                            echo '#EXTINF:-1 tvg-name="厦门卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/jilin1/GX0801JLWSTB.png" group-title="全国卫视",吉林卫视' >> "$temp_file"
+                            echo '#EXTINF:-1 tvg-name="吉林卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/jilin1/GX0801JLWSTB.png" group-title="全国卫视",吉林卫视' >> "$temp_file"
                             echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226389/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
                             echo "" >> "$temp_file"  # 确保有空行
                         fi
+                        if [[ "$tvg_name" == "新疆卫视"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
+                            echo '#EXTINF:-1 tvg-name="新疆卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/xjtv1/GX0801XJWSTB.png" group-title="全国卫视",新疆卫视' >> "$temp_file"
+                            echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226426/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
+                            echo "" >> "$temp_file"  # 确保有空行
+                        fi
+                        if [[ "$tvg_name" == "西藏卫视"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
+                            echo '#EXTINF:-1 tvg-name="西藏卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/xizangstv/GX0801XZWSTB.png" group-title="全国卫视",西藏卫视' >> "$temp_file"
+                            echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226416/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
+                            echo "" >> "$temp_file"  # 确保有空行
+                        fi
+                        if [[ "$tvg_name" == "兵团卫视"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
+                            echo '#EXTINF:-1 tvg-name="兵团卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/SD-4000k-576P-bingtuanstv/GX0802BTWSTB.png" group-title="全国卫视",兵团卫视' >> "$temp_file"
+                            echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226423/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
+                            echo "" >> "$temp_file"  # 确保有空行
+                        fi
+                        if [[ "$tvg_name" == "金鹰纪实"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
+                            echo '#EXTINF:-1 tvg-name="金鹰纪实" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/SD-4000k-576P-jinyingjs/GX0802JYJSTB.png" group-title="广西热播",金鹰纪实' >> "$temp_file"
+                            echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226406/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
+                            echo "" >> "$temp_file"  # 确保有空行
+                        fi
+                        if [[ "$tvg_name" == "金鹰卡通"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
+                            echo '#EXTINF:-1 tvg-name="金鹰卡通" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/jinyingkaton/GX0802JYKTTB.png" group-title="广西热播",金鹰卡通' >> "$temp_file"
+                            echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226404/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
+                            echo "" >> "$temp_file"  # 确保有空行
+                        fi
+                        if [[ "$tvg_name" == "金鹰卡通"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
+                            echo '#EXTINF:-1 tvg-name="金鹰卡通" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/jinyingkaton/GX0802JYKTTB.png" group-title="广西热播",金鹰卡通' >> "$temp_file"
+                            echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226404/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
+                            echo "" >> "$temp_file"  # 确保有空行
+                        fi
+                        if [[ "$tvg_name" == "金鹰卡通"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
+                            echo '#EXTINF:-1 tvg-name="金鹰卡通" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/jinyingkaton/GX0802JYKTTB.png" group-title="广西热播",金鹰卡通' >> "$temp_file"
+                            echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226404/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
+                            echo "" >> "$temp_file"  # 确保有空行
+                        fi
+                        if [[ "$tvg_name" == "中国教育4套"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
+                            echo '#EXTINF:-1 tvg-name="中国教育4套" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/SD-4000k-576P-jiaoyutv4/ZGJY4YXTBY0415.png" group-title="广西热播",中国教育4套' >> "$temp_file"
+                            echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226414/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
+                            echo "" >> "$temp_file"  # 确保有空行
+                        fi
+
                       fi
 
                     echo "$line" >> "$temp_file"
