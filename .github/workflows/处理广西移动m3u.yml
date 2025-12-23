@@ -14,6 +14,8 @@ jobs:
     - name: 下载原始IPTV文件
       run: |
         curl -s -o gxmobile.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+        curl -s -o migu.txt https://raw.githubusercontent.com/tyrian9905/iptv/main/migu.txt
+        
     - name: 处理IPTV文件（过滤超清极清和4K资源）
       run: |
         # 创建过滤脚本
