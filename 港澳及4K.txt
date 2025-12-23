@@ -112,10 +112,10 @@ http://utv1.hqtvzb.com:9999/hls/world.m3u8
 #EXTINF:-1 tvg-name="Movies Kingdom" tvg-logo="https://gitee.com/lee9108/tv/raw/master/img/环球电视台.png" group-title="港澳热播",Movies Kingdom
 https://moviesphereuk-samsunguk.amagi.tv/playlist.m3u8
 
-#EXTINF:-1 tvg-name="新加坡亚洲新闻" tvg-logo="https://gitee.com/lee9108/tv/raw/master/img/新加坡亚洲新闻.png" group-title="",新加坡亚洲新闻
+#EXTINF:-1 tvg-name="新加坡亚洲新闻" tvg-logo="https://gitee.com/lee9108/tv/raw/master/img/新加坡亚洲新闻.png" group-title="港澳热播",新加坡亚洲新闻
 https://d2e1asnsl7br7b.cloudfront.net/7782e205e72f43aeb4a48ec97f66ebbe/index_4.m3u8
 
-#EXTINF:-1 tvg-name="韩国MBC频道" tvg-logo="https://gitee.com/lee9108/tv/raw/master/img/环球电视台.png" group-title="",韩国MBC频道
+#EXTINF:-1 tvg-name="韩国MBC频道" tvg-logo="https://gitee.com/lee9108/tv/raw/master/img/环球电视台.png" group-title="港澳热播",韩国MBC频道
 http://vod.mpmbc.co.kr:1935/live/encoder-tv/playlist.m3u8
 
 #EXTINF:-1 tvg-name="星空卫视" tvg-logo="https://gitee.com/lee9108/tv/raw/master/img/星空卫视.png" group-title="港澳热播",星空卫视
