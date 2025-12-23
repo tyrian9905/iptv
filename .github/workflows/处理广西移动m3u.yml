@@ -156,24 +156,24 @@ jobs:
 
                     # 6. 添加个别节目的高清源
                     if [[ "$tvg_name" == "中国国际电视台新闻频道"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
-                        echo '#EXTINF:-1 tvg-name="CGTN新闻频道" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/SD-4000k-576P-cctvennews/GXZGGJXWTB0731.png" group-title="央视热播",中国国际电视台新闻频道' >> "$file"
+                        echo '#EXTINF:-1 tvg-name="CGTN新闻频道" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/SD-4000k-576P-cctvennews/GXZGGJXWTB0731.png" group-title="央视热播",中国国际电视台新闻频道' >> "$temp_file"
                         echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226417/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
-                        echo "" >> "$file"  # 确保有空行
+                        echo "" >> "$temp_file"  # 确保有空行
                     fi
                     if [[ "$tvg_name" == "厦门卫视"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
-                        echo '#EXTINF:-1 tvg-name="厦门卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/SD-4000k-576P-xiamenstv/GX0802XMWSTB.png" group-title="全国卫视",厦门卫视' >> "$file"
+                        echo '#EXTINF:-1 tvg-name="厦门卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/SD-4000k-576P-xiamenstv/GX0802XMWSTB.png" group-title="全国卫视",厦门卫视' >> "$temp_file"
                         echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226412/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
-                        echo "" >> "$file"  # 确保有空行
+                        echo "" >> "$temp_file"  # 确保有空行
                     fi
                     if [[ "$tvg_name" == "陕西卫视"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
-                        echo '#EXTINF:-1 tvg-name="厦门卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/shanxi1stv/GX0801SXWSTB.png" group-title="全国卫视",陕西卫视' >> "$file"
+                        echo '#EXTINF:-1 tvg-name="厦门卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/shanxi1stv/GX0801SXWSTB.png" group-title="全国卫视",陕西卫视' >> "$temp_file"
                         echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226400/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
-                        echo "" >> "$file"  # 确保有空行
+                        echo "" >> "$temp_file"  # 确保有空行
                     fi
                     if [[ "$tvg_name" == "吉林卫视"* ]] && [[ "$file" == "gxmobile.m3u" ]]; then
-                        echo '#EXTINF:-1 tvg-name="厦门卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/jilin1/GX0801JLWSTB.png" group-title="全国卫视",吉林卫视' >> "$file"
+                        echo '#EXTINF:-1 tvg-name="厦门卫视" tvg-logo="http://images.center.bcs.ottcn.com:8080/images/ysten/images/ysten/TV/jilin1/GX0801JLWSTB.png" group-title="全国卫视",吉林卫视' >> "$temp_file"
                         echo 'http://cdnrrs.gx.chinamobile.com/PLTV/77777777/224/3221226389/index.m3u8?servicetype=1?servicetype=3' >> "$temp_file"
-                        echo "" >> "$file"  # 确保有空行
+                        echo "" >> "$temp_file"  # 确保有空行
                     fi
 
                     echo "$line" >> "$temp_file"
