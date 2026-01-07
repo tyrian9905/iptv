@@ -11,9 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: 下载原始IPTV文件
+    - name: 下载EPG节目单
       run: |
-        wget -q https://epg.112114.xyz/pp.xml -O 112114_1day_epg.xml
+        wget -q https://epg.112114.xyz/pp.xml -O 112114_epg1d.xml
 
     - name: 推送到Gitee
       run: |
@@ -32,10 +32,10 @@ jobs:
         cd ${REPO}
         
         # 复制文件
-        cp ../112114_1day_epg.xml ./
+        cp ../112114_epg1d.xml ./
         
         # 提交并推送
-        git add 112114_1day_epg.xml
+        git add 112114_epg1d.xml
         git commit -m "自动同步 ${BEIJING_TIME}"
         git push origin master
         
