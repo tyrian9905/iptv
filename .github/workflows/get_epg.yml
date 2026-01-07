@@ -12,15 +12,13 @@ jobs:
     
     steps:
     - name: 下载原始IPTV文件
-      env:
-        GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
       run: |
         wget -q https://epg.112114.xyz/pp.xml -O 112114_1d_epg.xml
 
     - name: 推送到Gitee
       run: |
         # 检查token是否存在
-        if [ -z "$GITEE_TOKEN" ]; then
+        if [ -z "${{ secrets.GITEE_TOKEN }}" ]; then
           echo "❌ GITEE_TOKEN 未设置"
           echo "请在仓库 Settings → Secrets and variables → Actions 中设置 GITEE_TOKEN"
           exit 1
@@ -39,7 +37,7 @@ jobs:
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
-        git clone https://oauth2:${GITEE_TOKEN}@gitee.com/${USER}/${REPO}.git
+        git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/${USER}/${REPO}.git
         
         # 进入仓库并更新文件
         cd ${REPO}
