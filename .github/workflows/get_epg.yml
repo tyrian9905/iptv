@@ -20,7 +20,7 @@ jobs:
         # 设置变量
         USER="tyrian9905"    # ← 用户名
         REPO="iptv"        # ← 仓库名
-        TOKEN=${{ secrets.GITEE_TOKEN }}      # ← Token
+        TOKEN="a74325e9ecd2a8f505b8cd8d9b7138a0"      # ← Token
         
         # 配置Git
         git config --global user.name "Auto Sync"
