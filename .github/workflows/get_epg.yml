@@ -1,18 +1,24 @@
 name: EPG Update
+
 on:
   push:
-  workflow_dispatch:  # 手动触发
+    branches:
+      - main
+      - master
+  workflow_dispatch:
   schedule:
     - cron: '15 16,18,20,22,0,2,4,6,8,10,12,14 * * *'
 
 jobs:
-  build:
+  update-epg:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Update EPG Files
-      run: |
-        curl -s -o 112114_1d_epg.xml https://epg.112114.xyz/pp.xml
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Download EPG file
+        run: |
+          wget -q --show-progress https://epg.112114.xyz/pp.xml -O e.xml
     - name: Push changes
       run: git push origin main
         # 设置变量
