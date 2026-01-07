@@ -11,12 +11,31 @@ jobs:
     - uses: actions/checkout@v3
     - name: Update EPG Files
       run: |
-        rm -f e.xml && wget https://epg.112114.xyz/pp.xml -O e.xml
+        rm -f e.xml && wget -q https://epg.112114.xyz/pp.xml -O 112114_1d_epg.xml
         git config --local user.name "github-actions[bot]"
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git add e.xml
         git commit -m "EPG Update."
     - name: Push changes
       run: git push origin main
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # 设置变量
+        USER="tyrian9905"    # ← 用户名
+        REPO="iptv"        # ← 仓库名
+        TOKEN="a74325e9ecd2a8f505b8cd8d9b7138a0"      # ← Token        
+        # 配置Git
+        git config --global user.name "Auto Sync"
+        git config --global user.email "auto@sync.com"
+        export TZ='Asia/Shanghai'
+        # 获取北京时间
+        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+        # 克隆仓库
+        git clone https://oauth2:${TOKEN}@gitee.com/${USER}/${REPO}.git   
+        # 进入仓库并更新文件
+        cd ${REPO}
+        # 复制处理前的文件
+        cp ../112114_1d_epg.xml ./
+        # 提交并推送
+        git add 112114_1d_epg.xml
+        git commit -m "自动同步 ${BEIJING_TIME}
+        git push origin master
+        echo "🎉 同步成功！"
