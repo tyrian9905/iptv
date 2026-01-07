@@ -12,6 +12,8 @@ jobs:
     
     steps:
     - name: 下载原始IPTV文件
+      env:
+        GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
       run: |
         wget -q https://epg.112114.xyz/pp.xml -O 112114_1d_epg.xml
 
