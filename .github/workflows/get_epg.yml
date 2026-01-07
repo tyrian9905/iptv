@@ -13,7 +13,8 @@ jobs:
     steps:
     - name: 下载原始IPTV文件
       run: |
-        curl -s -o e.xml https://raw.githubusercontent.com/tyrian9905/iptv/main/港澳及4K.txt
+        curl -s -o 广西移动回放H265.m3u https://raw.githubusercontent.com/Healer-sys/Home/main/iptv/gx.m3u
+        curl -s -o 港澳及4K.txt https://raw.githubusercontent.com/tyrian9905/iptv/main/港澳及4K.txt
         
     - name: Push changes
       run: git push origin main
