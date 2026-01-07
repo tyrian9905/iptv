@@ -13,7 +13,7 @@ jobs:
     steps:
     - name:  更新节目单
       run: |
-        wget -q https://raw.githubusercontent.com/fanmingming/live/refs/heads/main/e.xml -O e.xml
+        rm -f e.xml && wget https://epg.112114.xyz/pp.xml -O e.xml
     - name: Push changes
       run: git push origin main
         # 设置变量
