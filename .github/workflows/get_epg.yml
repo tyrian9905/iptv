@@ -12,7 +12,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: Update EPG Files
       run: |
-        wget -q https://epg.112114.xyz/pp.xml -O 112114_1d_epg.xml
+        wget -q -O 112114_1d_epg.xml https://epg.112114.xyz/pp.xml
     - name: Push changes
       run: git push origin main
         # 设置变量
