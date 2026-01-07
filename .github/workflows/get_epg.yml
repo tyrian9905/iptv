@@ -13,7 +13,7 @@ jobs:
     steps:
     - name:  更新节目单
       run: |
-          wget -q --show-progress https://epg.112114.xyz/pp.xml -O e.xml
+          curl -s -o e.xml https://epg.112114.xyz/pp.xml
     - name: Push changes
       run: git push origin main
         # 设置变量
