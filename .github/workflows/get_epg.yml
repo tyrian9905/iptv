@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # 手动触发
 #  schedule:
 #  # 北京时间凌晨2点 = UTC时间前一天18点
-#  - cron: '0 18 * * *'  # UTC时间18点执行（北京时间第二天2点）
+#  - cron: '15 16,18,20,22,0,2,4,6,8,10,12,14 * * *'
 
 jobs:
   sync:
@@ -37,7 +37,7 @@ jobs:
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
-        git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/${USER}/${REPO}.git
+        git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/tyrian9905/iptv.git
         
         # 进入仓库并更新文件
         cd ${REPO}
