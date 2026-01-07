@@ -20,6 +20,7 @@ jobs:
         # 设置变量
         USER="tyrian9905"    # ← 用户名
         REPO="iptv"        # ← 仓库名
+        TOKEN=${{ secrets.GITEE_TOKEN }}      # ← Token
         
         # 配置Git
         git config --global user.name "Auto Sync"
@@ -30,7 +31,7 @@ jobs:
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
-        git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/tyrian9905/iptv.git
+        git clone https://oauth2:${TOKEN}@gitee.com/tyrian9905/iptv.git
         
         # 进入仓库并更新文件
         cd ${REPO}
