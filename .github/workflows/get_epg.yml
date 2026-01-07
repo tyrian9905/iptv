@@ -23,11 +23,6 @@ jobs:
           echo "请在仓库 Settings → Secrets and variables → Actions 中设置 GITEE_TOKEN"
           exit 1
         fi
-        if [ -z "${ secrets.GITEE_TOKEN }" ]; then
-          echo "❌ GITEE_TOKEN 3未设置"
-          echo "请在仓库 Settings → Secrets and variables → Actions 中设置 GITEE_TOKEN"
-          exit 1
-        fi
         # 设置变量
         USER="tyrian9905"    # ← 用户名
         REPO="iptv"        # ← 仓库名
