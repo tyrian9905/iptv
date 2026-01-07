@@ -13,7 +13,7 @@ jobs:
     steps:
     - name: 下载原始IPTV文件
       run: |
-        rm -f 112114_1d_epg.xml && wget -q https://epg.112114.xyz/pp.xml -O 112114_1d_epg.xml
+        wget -q https://epg.112114.xyz/pp.xml -O 112114_1d_epg.xml
 
     - name: 推送到Gitee
       run: |
@@ -41,7 +41,7 @@ jobs:
         
         # 提交并推送
         git add 112114_1d_epg.xml
-        git commit -m "自动同步 ${BEIJING_TIME}
+        git commit -m "自动同步 ${BEIJING_TIME}"
         git push origin master
         
         echo "🎉 节目单EPG成功！"
