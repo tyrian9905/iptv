@@ -51,5 +51,3 @@ jobs:
         git push origin master
         
         echo "🎉 节目单EPG成功！"
-     env:
-        GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
