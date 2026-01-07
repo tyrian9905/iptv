@@ -81,7 +81,7 @@ jobs:
         echo "🔄 修改EPG源URL并清理tvg-name字符..."
         
         # 定义新的EPG源URL
-        new_epg_url='https://baoer.org.cn/e.xml'
+        new_epg_url='https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml'
         
         # 处理两个文件
         for file in 广西移动回放H265.m3u 广西移动回放H264.m3u
