@@ -2,9 +2,9 @@ name: 更新EPG节目单
 
 on:
   workflow_dispatch:  # 手动触发
-#  schedule:
-#  # 北京时间凌晨2点 = UTC时间前一天18点
-#  - cron: '15 16,18,20,22,0,2,4,6,8,10,12,14 * * *'
+  schedule:
+  # 北京时间凌晨2点 = UTC时间前一天18点
+  - cron: '15 16,18,20,22,0,2,4,6,8,10,12,14 * * *'
 
 jobs:
   sync:
@@ -16,18 +16,7 @@ jobs:
         wget -q https://epg.112114.xyz/pp.xml -O 112114_1d_epg.xml
 
     - name: 推送到Gitee
-      run: |
-        # 检查token是否存在
-        if [ -z "${{ secrets.GITEE_TOKEN }}" ]; then
-          echo "❌ GITEE_TOKEN 未设置"
-          echo "请在仓库 Settings → Secrets and variables → Actions 中设置 GITEE_TOKEN"
-          exit 1
-        fi
-        # 设置变量
-        USER="tyrian9905"    # ← 用户名
-        REPO="iptv"        # ← 仓库名
-
-        
+      run: |       
         # 配置Git
         git config --global user.name "Auto Sync"
         git config --global user.email "auto@sync.com"
