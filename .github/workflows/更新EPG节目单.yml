@@ -16,7 +16,7 @@ jobs:
         wget -q https://epg.112114.xyz/pp.xml -O 112114_1day_epg.xml
 
     - name: 推送到Gitee
-      run: |       
+      run: |
         # 配置Git
         git config --global user.name "Auto Sync"
         git config --global user.email "auto@sync.com"
