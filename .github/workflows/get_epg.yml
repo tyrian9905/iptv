@@ -16,11 +16,12 @@ jobs:
         wget -q https://epg.112114.xyz/pp.xml -O 112114_1d_epg.xml
 
     - name: 推送到Gitee
+      env:
+      GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
       run: |
         # 设置变量
         USER="tyrian9905"    # ← 用户名
         REPO="iptv"        # ← 仓库名
-        TOKEN=$GITEE_TOKEN
         
         # 配置Git
         git config --global user.name "Auto Sync"
@@ -31,7 +32,7 @@ jobs:
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
-        git clone https://oauth2:${TOKEN}@gitee.com/${USER}/${REPO}.git
+        git clone https://oauth2:${GITEE_TOKEN}@gitee.com/${USER}/${REPO}.git
         
         # 进入仓库并更新文件
         cd ${REPO}
