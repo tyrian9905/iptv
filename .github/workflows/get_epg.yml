@@ -16,12 +16,13 @@ jobs:
         wget -q https://epg.112114.xyz/pp.xml -O 112114_1d_epg.xml
 
     - name: 推送到Gitee
-      env:
-      GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
       run: |
+      env:
+        GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         # 设置变量
         USER="tyrian9905"    # ← 用户名
         REPO="iptv"        # ← 仓库名
+
         
         # 配置Git
         git config --global user.name "Auto Sync"
