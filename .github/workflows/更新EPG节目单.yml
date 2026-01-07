@@ -13,8 +13,7 @@ jobs:
     steps:
     - name: 下载EPG节目单
       run: |
-        #wget -q https://epg.112114.xyz/pp.xml -O 1day112114_epg.xml
-        wget -q https://gitee.com/tyrian9905/iptv/raw/master/e.xml -O 1day112114_epg.xml
+        wget -q https://epg.112114.xyz/pp.xml -O 1day112114_epg.xml
 
     - name: 推送到Gitee
       run: |
