@@ -16,8 +16,6 @@ jobs:
         wget -q https://epg.112114.xyz/pp.xml -O 112114_1d_epg.xml
 
     - name: 推送到Gitee
-     env:
-        GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
       run: |
         # 检查token是否存在
         if [ -z "$GITEE_TOKEN" ]; then
@@ -53,3 +51,5 @@ jobs:
         git push origin master
         
         echo "🎉 节目单EPG成功！"
+     env:
+        GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
