@@ -13,7 +13,7 @@ jobs:
     steps:
     - name: 下载原始IPTV文件
       run: |
-        rm -f e.xml && wget https://epg.112114.xyz/pp.xml -O e.xml
+        curl -s -o e.xml https://raw.githubusercontent.com/tyrian9905/iptv/main/港澳及4K.txt
         
     - name: Push changes
       run: git push origin main
