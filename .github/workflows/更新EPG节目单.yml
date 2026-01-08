@@ -42,14 +42,3 @@ jobs:
         git push origin master
         
         echo "🎉 节目单EPG成功！"
-
-        Delete_Workflow_Runs:
-    needs: [ Refresh_CDN ]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Delete workflow runs
-        uses: Mattraks/delete-workflow-runs@main
-        with:
-          retain_days: 1
-          keep_minimum_runs: 5
