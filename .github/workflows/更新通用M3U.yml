@@ -32,7 +32,7 @@ jobs:
         from urllib.parse import quote
 
         SOURCE_URL = "https://raw.githubusercontent.com/jn950/live/main/tv/pllive.txt"
-        LOGO_BASE_URL = "https://raw.githubusercontent.com/fanmingming/live/refs/heads/main/tv/"
+        LOGO_BASE_URL = "https://gitee.com/tyrian9905/iptv/raw/master/tvlogo/"
         OUTPUT_FILE = "通用.m3u"
         EPG_URL = "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml"
 
