@@ -32,7 +32,7 @@ jobs:
 
         SOURCE_URL = "https://raw.githubusercontent.com/jn950/live/main/tv/pllive.txt"
         LOGO_BASE_URL = "https://raw.githubusercontent.com/fanmingming/live/refs/heads/main/tv/"
-        OUTPUT_FILE = "通用.m3u"
+        OUTPUT_FILE = "通用.M3U"
         EPG_URL = "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml"
 
         def process_tvname(tvname):
