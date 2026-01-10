@@ -1,9 +1,10 @@
 name: 更新通用M3U
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # 手动触发
   schedule:
-    - cron: '0 0 * * *'  # 每天UTC时间0点运行
+  # 北京时间凌晨2点 = UTC时间前一天18点
+  - cron: '20 17,19,21,23,1,3,5,7,9,11,13,15 * * *'
 
 jobs:
   process-tv-channels:
@@ -32,7 +33,7 @@ jobs:
 
         SOURCE_URL = "https://raw.githubusercontent.com/jn950/live/main/tv/pllive.txt"
         LOGO_BASE_URL = "https://raw.githubusercontent.com/fanmingming/live/refs/heads/main/tv/"
-        OUTPUT_FILE = "通用.M3U"
+        OUTPUT_FILE = "通用.m3u"
         EPG_URL = "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml"
 
         def process_tvname(tvname):
@@ -127,11 +128,11 @@ jobs:
         cd ${REPO}
         
         # 复制文件
-        cp ../通用.M3U ./
+        cp ../通用.m3u ./
         
         # 提交并推送
-        git add 通用.M3U
+        git add 通用.m3u
         git commit -m "自动同步 ${BEIJING_TIME}"
         git push origin master
         
-        echo "🎉 节目单EPG成功！"
+        echo "🎉 节目m3u更新成功！"
