@@ -13,10 +13,16 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-python@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests pyyaml
         
     - name: Process Channels
       run: |
@@ -91,7 +97,7 @@ jobs:
                         # 分类版写入
                         self._write_entry(f_cat, norm_name, category, url)
                         # 无分组版写入
-                        self._write_entry(f_flat, norm_name, "IPTV", url)
+                        self._write_entry(f_flat, norm_name, "MY9", url)
 
             def _normalize_name(self, name):
                 """标准化频道名称"""
@@ -117,10 +123,9 @@ jobs:
                     '卫视' in name or
                     '广东珠江' in name or
                     '山东教育' in name or
-                    凤凰香港' in name or
-                    '凤凰中文' in name or
-                    '凤凰资讯' in name:
+                    any(x in name for x in ['凤凰香港','凤凰中文','凤凰资讯'])):
                     return '卫视'
+                
                 return '其他'
 
             def _write_entry(self, f, name, group, url):
