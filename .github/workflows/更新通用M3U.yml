@@ -31,7 +31,7 @@ jobs:
         from urllib.parse import quote
 
         class TVProcessor:
-            __slots__ = ('config', 'skip_pattern', 'provider_pattern')
+            __slots__ = ('config', 'skip_pattern', 'provider_pattern', 'cctv_pattern')
             
             def __init__(self):
                 self.config = {
@@ -42,13 +42,14 @@ jobs:
                         r'\+|PLUS': 'CCTV5+',
                         '3D': 'CCTV3D',
                         '美洲|AME': 'CCTV4美洲',
-                        '欧洲|EUO': 'CCTV4欧洲',
-                        '10': 'CCTV10'
+                        '欧洲|EUO': 'CCTV4欧洲'
                     }
                 }
                 # 编译匹配模式
                 self.skip_pattern = re.compile(r'卫视([1-9]|1[0-2])|卫视F|4K|8K', re.IGNORECASE)
                 self.provider_pattern = re.compile(r'联通|电信|移动|广电|genre', re.IGNORECASE)
+                # 使用VB6风格的CCTV匹配模式
+                self.cctv_pattern = re.compile(r'(CCTV\d{1,2})[^\d]')
 
             def process(self):
                 with (
@@ -62,8 +63,11 @@ jobs:
                     f_cat.write(header)
                     f_flat.write(header)
 
+                    content = requests.get(self.config['source']).text.splitlines()
                     current_group = ""
-                    for line in requests.get(self.config['source']).text.splitlines():
+                    
+                    # 跳过前两行说明
+                    for line in content[2:]:
                         line = line.strip()
                         if not line:
                             continue
@@ -89,12 +93,12 @@ jobs:
                         
                         # 标准化处理
                         norm_name = self._normalize_name(name)
-                        category = self._determine_category(norm_name)
+                        final_name, category = self._process_channel(norm_name)
                         
                         # 分类版写入
-                        self._write_entry(f_cat, norm_name, category, url)
+                        self._write_entry(f_cat, final_name, category, url)
                         # 无分组版写入
-                        self._write_entry(f_flat, norm_name, "MY9", url)
+                        self._write_entry(f_flat, final_name, "MY9", url)
 
             def _normalize_name(self, name):
                 """标准化频道名称（保留核心标识）"""
@@ -106,29 +110,28 @@ jobs:
                     name
                 )
 
-            def _determine_category(self, name):
-                """精确分类逻辑"""
-                # CCTV处理
+            def _process_channel(self, name):
+                """处理频道并返回(最终名称, 分类)"""
+                # 特殊CCTV处理
                 if 'CCTV' in name:
-                    for pattern, new_name in self.config['cctv_map'].items():
-                        if re.search(pattern, name):
-                            return '央视'
-                    if match := re.search(r'(CCTV\d{1,2})', name):
-                        return '央视'
-                    return '央视'
+                    if match := self.cctv_pattern.search(name.replace("0", "") + "HD"):
+                        return match.group(1), '央视'
+                    return name, '央视'
                 
                 # 卫视类判断
                 if ('卫视' in name or 
                     '广东珠江' in name or 
                     '山东教育' in name or
-                    any(x in name for x in ['凤凰香港','凤凰中文','凤凰资讯'])):
-                    return '卫视'
+                    '凤凰香港' in name or
+                    '凤凰中文' in name or
+                    '凤凰资讯' in name):
+                    return name, '卫视'
                 
                 # 其他央视相关
                 if 'CETV' in name or 'CGTN' in name:
-                    return '央视'
+                    return name, '央视'
                     
-                return '其他'
+                return name, '其他'
 
             def _write_entry(self, f, name, group, url):
                 """安全写入条目"""
