@@ -26,7 +26,7 @@ jobs:
         
     - name: Process Channels
       run: |
-        cat <<'EOF'>vb6_processor.py
+        cat <<'EOF'>final_processor.py
         import re, requests
         from urllib.parse import quote
 
@@ -35,7 +35,7 @@ jobs:
             
             def __init__(self):
                 self.config = {
-                    'source': "https://my9.ltd/tv/pllive.txt",
+                    'source': "https://raw.githubusercontent.com/jn950/live/main/tv/pllive.txt",
                     'logo': "https://raw.githubusercontent.com/fanmingming/live/main/tv/",
                     'epg': "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml"
                 }
@@ -64,58 +64,75 @@ jobs:
                         if ',' not in line:
                             continue
                         
-                        name, url = line.split(',', 1)
-                        name, url = name.strip(), url.strip()
+                        original_name, url = line.split(',', 1)
+                        original_name, url = original_name.strip(), url.strip()
                         
-                        # 对所有版本进行名称处理
-                        tv_name, group = self._vb6_style_process(name)
+                        # 第一步：执行所有指定的替换操作
+                        processed_name = self._standardize_name(original_name)
+                        
+                        # 第二步：按照VB6逻辑处理
+                        tv_name, group = self._vb6_style_process(processed_name, original_name)
                         
                         # MY9原版：使用处理后的名称但保留原始分组
-                        self._write_entry(f_orig, tv_name, "", tv_name, url)
+                        self._write_entry(f_orig, tv_name, "", original_name, url)
                         
                         # 跳过需要过滤的频道（仅用于分节目和无分组版本）
-                        if self.skip_pattern.search(name):
+                        if self.skip_pattern.search(processed_name):
                             continue
                         
                         # MY9分节目：分类版
-                        self._write_entry(f_cat, tv_name, group, tv_name, url)
+                        self._write_entry(f_cat, tv_name, group, original_name, url)
                         # MY9无分组：统一分组
-                        self._write_entry(f_flat, tv_name, "MY9", tv_name, url)
+                        self._write_entry(f_flat, tv_name, "MY9", original_name, url)
 
-            def _vb6_style_process(self, tvname):
-                """完全按照VB6逻辑处理频道名称"""
-                tvname_upper = tvname.upper()
-                
+            def _standardize_name(self, name):
+                """执行所有指定的7次替换操作"""
+                name = name.upper().strip()
+                replacements = [
+                    (' ', ''),
+                    ('-', ''),
+                    ('HD', ''),
+                    ('SD', ''),
+                    ('高清', ''),
+                    ('标清', ''),
+                    ('超清', '')
+                ]
+                for old, new in replacements:
+                    name = name.replace(old, new)
+                return name
+
+            def _vb6_style_process(self, processed_name, original_name):
+                """按照VB6逻辑处理标准化后的名称"""
                 # CCTV处理
-                if "CCTV" in tvname_upper:
+                if "CCTV" in processed_name:
                     group = "央视"
                     
                     # 特殊频道处理
-                    if "+" in tvname_upper or "PLUS" in tvname_upper:
+                    if "+" in processed_name or "PLUS" in processed_name:
                         return "CCTV5+", group
-                    if "3D" in tvname_upper:
+                    if "3D" in processed_name:
                         return "CCTV3D", group
-                    if "美洲" in tvname_upper or "AME" in tvname_upper:
+                    if "美洲" in processed_name or "AME" in processed_name:
                         return "CCTV4美洲", group
-                    if "欧洲" in tvname_upper or "EUO" in tvname_upper:
+                    if "欧洲" in processed_name or "EUO" in processed_name:
                         return "CCTV4欧洲", group
-                    if "10" in tvname_upper:
+                    if "10" in processed_name:
                         return "CCTV10", group
                     
                     # 处理数字频道
-                    matches = re.search(r"(CCTV\d{1,2})[^\d]", tvname_upper.replace("0", "") + "HD")
+                    matches = re.search(r"(CCTV\d{1,2})[^\d]", processed_name.replace("0", "") + "HD")
                     if matches:
                         return matches.group(1), group
                     
                     # 其他CCTV频道（如CCTV兵器科技）
-                    return tvname.replace("CCTV", ""), "专题"
+                    return original_name.replace("CCTV", ""), "专题"
                 
                 # CETV/CGTN处理
-                if "CETV" in tvname_upper or "CGTN" in tvname_upper:
-                    return tvname, "央视"
+                if "CETV" in processed_name or "CGTN" in processed_name:
+                    return original_name, "央视"
                     
                 # 卫视处理
-                return tvname, "卫视"
+                return original_name, "卫视"
 
             def _write_entry(self, f, tvg_name, group, display_name, url):
                 """写入标准格式条目"""
@@ -131,7 +148,7 @@ jobs:
             TVProcessor().process()
         EOF
 
-        python vb6_processor.py
+        python final_processor.py
       
     - name: 推送到Gitee
       run: |
