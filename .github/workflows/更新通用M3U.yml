@@ -26,12 +26,12 @@ jobs:
         
     - name: Process Channels
       run: |
-        cat <<'EOF'>optimized_processor.py
+        cat <<'EOF'>final_processor.py
         import re, requests
         from urllib.parse import quote
 
         class TVProcessor:
-            __slots__ = ('config', 'skip_pattern')
+            __slots__ = ('config', 'skip_pattern', 'provider_pattern')
             
             def __init__(self):
                 self.config = {
@@ -46,11 +46,9 @@ jobs:
                         '10': 'CCTV10'
                     }
                 }
-                # 编译高效跳过模式 (卫视1-12 + 卫视F + 4K/8K)
-                self.skip_pattern = re.compile(
-                    r'卫视([1-9]|1[0-2])|卫视F|4K|8K', 
-                    re.IGNORECASE
-                )
+                # 编译匹配模式
+                self.skip_pattern = re.compile(r'卫视([1-9]|1[0-2])|卫视F|4K|8K', re.IGNORECASE)
+                self.provider_pattern = re.compile(r'联通|电信|移动|广电|genre', re.IGNORECASE)
 
             def process(self):
                 with (
@@ -58,39 +56,38 @@ jobs:
                     open('MY9分节目.m3u', 'w', encoding='utf-8') as f_cat,
                     open('MY9无分组.m3u', 'w', encoding='utf-8') as f_flat
                 ):
-                    # 共享文件头
+                    # 写入文件头
                     header = f"#EXTM3U x-tvg-url=\"{self.config['epg']}\"\n"
                     f_orig.write(header)
                     f_cat.write(header)
                     f_flat.write(header)
 
                     current_group = ""
-                    for line in requests.get(self.config['source']).text.splitlines()[3:]:
+                    for line in requests.get(self.config['source']).text.splitlines():
                         line = line.strip()
                         if not line:
                             continue
                         
-                        # 处理分组行
-                        if line.startswith('#genre#'):
+                        # 处理分组标签行
+                        if '#genre#' in line:
                             current_group = line.split(',')[0]
                             continue
-                        elif line.startswith('#'):
+                        # 跳过所有注释行和无效行
+                        if line.startswith('#') or ',' not in line:
                             continue
                         
-                        # 分割频道信息
-                        parts = line.split(',', 1)
-                        if len(parts) != 2:
-                            continue
-                        name, url = parts[0].strip(), parts[1].strip()
+                        name, url = line.split(',', 1)
+                        name, url = name.strip(), url.strip()
                         
-                        # 原版写入 (保留所有内容)
+                        # 原版写入（保留原始数据）
                         self._write_entry(f_orig, name, current_group, url)
                         
-                        # 检查跳过规则 (使用预编译正则)
-                        if self.skip_pattern.search(name):
+                        # 跳过无效频道
+                        if (self.skip_pattern.search(name) or 
+                            self.provider_pattern.search(name)):
                             continue
                         
-                        # 标准化名称并分类
+                        # 标准化处理
                         norm_name = self._normalize_name(name)
                         category = self._determine_category(norm_name)
                         
@@ -100,9 +97,9 @@ jobs:
                         self._write_entry(f_flat, norm_name, "MY9", url)
 
             def _normalize_name(self, name):
-                """标准化频道名称"""
+                """标准化频道名称（保留核心标识）"""
                 name = name.upper()
-                # 移除空格/符号/画质标识
+                # 移除画质标识但保留卫视/央视等关键信息
                 return re.sub(
                     r'[ -]|HD|SD|高清|标清|超清', 
                     '', 
@@ -110,26 +107,31 @@ jobs:
                 )
 
             def _determine_category(self, name):
-                """确定频道分类"""
-                # CCTV特殊处理
+                """精确分类逻辑"""
+                # CCTV处理
                 if 'CCTV' in name:
                     for pattern, new_name in self.config['cctv_map'].items():
                         if re.search(pattern, name):
                             return '央视'
+                    if match := re.search(r'(CCTV\d{1,2})', name):
+                        return '央视'
                     return '央视'
                 
-                # 其他分类判断
-                if ('CETV' in name or 'CGTN' in name or
-                    '卫视' in name or
-                    '广东珠江' in name or
+                # 卫视类判断
+                if ('卫视' in name or 
+                    '广东珠江' in name or 
                     '山东教育' in name or
                     any(x in name for x in ['凤凰香港','凤凰中文','凤凰资讯'])):
                     return '卫视'
                 
+                # 其他央视相关
+                if 'CETV' in name or 'CGTN' in name:
+                    return '央视'
+                    
                 return '其他'
 
             def _write_entry(self, f, name, group, url):
-                """通用写入方法"""
+                """安全写入条目"""
                 safe_name = quote(name.replace("/", ""))
                 f.write(
                     f'#EXTINF:-1 tvg-id="{name}" '
@@ -143,7 +145,7 @@ jobs:
             TVProcessor().process()
         EOF
 
-        python optimized_processor.py
+        python final_processor.py
       
     - name: 推送到Gitee
       run: |
