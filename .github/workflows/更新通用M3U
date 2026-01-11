@@ -1,0 +1,138 @@
+name: 更新通用M3U
+
+on:
+  workflow_dispatch:  # 手动触发
+  schedule:
+  # 北京时间凌晨2点 = UTC时间前一天18点
+  - cron: '20 1,9 * * *'
+
+jobs:
+  process-tv-channels:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests pyyaml
+        
+    - name: Create processing script
+      run: |
+        cat << 'EOF' > process_tv.py
+        import re
+        import requests
+        from urllib.parse import quote
+
+        SOURCE_URL = "https://raw.githubusercontent.com/jn950/live/main/tv/pllive.txt"
+        LOGO_BASE_URL = "https://gitee.com/tyrian9905/iptv/raw/master/tvlogo/"
+        OUTPUT_FILE = "通用.m3u"
+        EPG_URL = "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml"
+
+        def process_tvname(tvname):
+            # 转换为大写并去除前后空格
+            tvname = tvname.upper().strip()
+            
+            # 检查4K/8K
+            if "4K" in tvname or "8K" in tvname:
+                return None
+                
+            # 去除不需要的字符
+            for pattern in [" ", "-", "HD", "SD", "高清", "标清", "超清"]:
+                tvname = tvname.replace(pattern, "")
+                
+            # 处理CCTV特殊频道
+            if "CCTV" in tvname:
+                if "+" in tvname or "PLUS" in tvname:
+                    return "CCTV5+"
+                elif "3D" in tvname:
+                    return "CCTV3D"
+                elif "美洲" in tvname or "AME" in tvname:
+                    return "CCTV4美洲"
+                elif "欧洲" in tvname or "EUO" in tvname:
+                    return "CCTV4欧洲"
+                elif "10" in tvname:
+                    return "CCTV10"
+                else:
+                    match = re.search(r"(CCTV\d{1,2})", tvname)
+                    if match:
+                        return match.group(1)
+            return tvname
+
+        # 下载直播源
+        response = requests.get(SOURCE_URL)
+        response.raise_for_status()
+        lines = response.text.splitlines()[3:]  # 跳过前三行
+
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            f.write(f'#EXTM3U x-tvg-url="{EPG_URL}"\n')
+            
+            current_group = "IPTV"
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                if "#genre#" in line:
+                    # current_group = line.split(",")[0].strip()
+                    continue
+                    
+                if line.startswith("#"):
+                    continue
+                    
+                parts = line.split(",", 1)
+                if len(parts) != 2:
+                    continue
+                    
+                channel_name, url = parts
+                channel_name = channel_name.strip()
+                url = url.strip()
+                
+                processed_name = process_tvname(channel_name)
+                if not processed_name:
+                    continue
+                    
+                encoded_name = quote(processed_name.replace(" ", "-").replace("/", ""))
+                logo_url = f"{LOGO_BASE_URL}{encoded_name}.png"
+                
+                f.write(f'#EXTINF:-1 tvg-id="{processed_name}" tvg-name="{processed_name}" tvg-logo="{logo_url}" group-title="{current_group}",{processed_name}\n')
+                f.write(f"{url}\n")
+        EOF
+        
+    - name: Run processing script
+      run: python process_tv.py
+      
+    - name: 推送到Gitee
+      run: |
+        # 配置Git
+        git config --global user.name "Auto Sync"
+        git config --global user.email "auto@sync.com"
+        USER="tyrian9905"    # ← 用户名
+        REPO="iptv"        # ← 仓库名
+        
+        export TZ='Asia/Shanghai'
+        # 获取北京时间
+        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+        
+        # 克隆仓库
+        git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/${USER}/${REPO}.git
+        
+        # 进入仓库并更新文件
+        cd ${REPO}
+        
+        # 复制文件
+        cp ../通用.m3u ./
+        
+        # 提交并推送
+        git add 通用.m3u
+        git commit -m "自动同步 ${BEIJING_TIME}"
+        git push origin master
+        
+        echo "🎉 节目m3u更新成功！"
