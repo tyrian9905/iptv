@@ -31,7 +31,7 @@ jobs:
         from urllib.parse import quote
 
         class TVProcessor:
-            __slots__ = ('config', 'skip_pattern', 'provider_pattern', 'cctv_pattern')
+            __slots__ = ('config', 'skip_pattern')
             
             def __init__(self):
                 self.config = {
@@ -45,11 +45,8 @@ jobs:
                         '欧洲|EUO': 'CCTV4欧洲'
                     }
                 }
-                # 编译匹配模式
+                # 编译跳过模式 (卫视1-12 + 卫视F + 4K/8K)
                 self.skip_pattern = re.compile(r'卫视([1-9]|1[0-2])|卫视F|4K|8K', re.IGNORECASE)
-                self.provider_pattern = re.compile(r'联通|电信|移动|广电|genre', re.IGNORECASE)
-                # 使用VB6风格的CCTV匹配模式
-                self.cctv_pattern = re.compile(r'(CCTV\d{1,2})[^\d]')
 
             def process(self):
                 with (
@@ -64,7 +61,6 @@ jobs:
                     f_flat.write(header)
 
                     content = requests.get(self.config['source']).text.splitlines()
-                    current_group = ""
                     
                     # 跳过前两行说明
                     for line in content[2:]:
@@ -72,66 +68,58 @@ jobs:
                         if not line:
                             continue
                         
-                        # 处理分组标签行
+                        # 直接跳过所有分组行
                         if '#genre#' in line:
-                            current_group = line.split(',')[0]
                             continue
-                        # 跳过所有注释行和无效行
-                        if line.startswith('#') or ',' not in line:
+                        # 跳过其他注释行
+                        if line.startswith('#'):
+                            continue
+                        # 确保是有效频道行
+                        if ',' not in line:
                             continue
                         
                         name, url = line.split(',', 1)
                         name, url = name.strip(), url.strip()
                         
                         # 原版写入（保留原始数据）
-                        self._write_entry(f_orig, name, current_group, url)
+                        self._write_entry(f_orig, name, "", url)
                         
-                        # 跳过无效频道
-                        if (self.skip_pattern.search(name) or 
-                            self.provider_pattern.search(name)):
+                        # 跳过需要过滤的频道
+                        if self.skip_pattern.search(name):
                             continue
                         
-                        # 标准化处理
+                        # 标准化名称
                         norm_name = self._normalize_name(name)
-                        final_name, category = self._process_channel(norm_name)
+                        final_name, is_cctv = self._process_channel(norm_name)
                         
-                        # 分类版写入
-                        self._write_entry(f_cat, final_name, category, url)
+                        # 分类版写入（央视/卫视）
+                        self._write_entry(f_cat, final_name, "央视" if is_cctv else "卫视", url)
                         # 无分组版写入
                         self._write_entry(f_flat, final_name, "MY9", url)
 
             def _normalize_name(self, name):
-                """标准化频道名称（保留核心标识）"""
+                """标准化频道名称"""
                 name = name.upper()
-                # 移除画质标识但保留卫视/央视等关键信息
-                return re.sub(
-                    r'[ -]|HD|SD|高清|标清|超清', 
-                    '', 
-                    name
-                )
+                return re.sub(r'[ -]|HD|SD|高清|标清|超清', '', name)
 
             def _process_channel(self, name):
-                """处理频道并返回(最终名称, 分类)"""
-                # 特殊CCTV处理
+                """处理频道并返回(最终名称, 是否央视)"""
+                # CCTV特殊处理
                 if 'CCTV' in name:
-                    if match := self.cctv_pattern.search(name.replace("0", "") + "HD"):
-                        return match.group(1), '央视'
-                    return name, '央视'
+                    for pattern, new_name in self.config['cctv_map'].items():
+                        if re.search(pattern, name):
+                            return new_name, True
+                    # 精确匹配CCTV编号
+                    if match := re.search(r'(CCTV\d{1,2})[^\d]', name.replace("0", "") + "HD"):
+                        return match.group(1), True
+                    return name, True
                 
-                # 卫视类判断
-                if ('卫视' in name or 
-                    '广东珠江' in name or 
-                    '山东教育' in name or
-                    '凤凰香港' in name or
-                    '凤凰中文' in name or
-                    '凤凰资讯' in name):
-                    return name, '卫视'
-                
-                # 其他央视相关
+                # CETV/CGTN也算央视
                 if 'CETV' in name or 'CGTN' in name:
-                    return name, '央视'
+                    return name, True
                     
-                return name, '其他'
+                # 其余全是卫视
+                return name, False
 
             def _write_entry(self, f, name, group, url):
                 """安全写入条目"""
