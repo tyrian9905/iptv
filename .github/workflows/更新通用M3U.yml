@@ -169,7 +169,7 @@ jobs:
         cp ../MY9无分组.m3u ./
         
         # 提交并推送
-        git add 通用.m3u MY9分节目.m3u MY9无分组.m3u
+        git add MY9原版.m3u MY9分节目.m3u MY9无分组.m3u
         git commit -m "自动同步 ${BEIJING_TIME}"
         git push origin master
         
