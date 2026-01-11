@@ -26,27 +26,41 @@ jobs:
         
     - name: Process Channels
       run: |
-        cat <<'EOF'>final_processor.py
+        cat <<'EOF'>standard_processor.py
         import re, requests
         from urllib.parse import quote
 
         class TVProcessor:
-            __slots__ = ('config', 'skip_pattern')
+            __slots__ = ('config', 'skip_pattern', 'cctv_names')
             
             def __init__(self):
                 self.config = {
                     'source': "https://raw.githubusercontent.com/jn950/live/main/tv/pllive.txt",
                     'logo': "https://raw.githubusercontent.com/fanmingming/live/main/tv/",
-                    'epg': "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml",
-                    'cctv_map': {
-                        r'\+|PLUS': 'CCTV5+',
-                        '3D': 'CCTV3D',
-                        '美洲|AME': 'CCTV4美洲',
-                        '欧洲|EUO': 'CCTV4欧洲'
-                    }
+                    'epg': "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml"
                 }
-                # 编译跳过模式 (卫视1-12 + 卫视F + 4K/8K)
                 self.skip_pattern = re.compile(r'卫视([1-9]|1[0-2])|卫视F|4K|8K', re.IGNORECASE)
+                # CCTV标准名称映射
+                self.cctv_names = {
+                    'CCTV1': 'CCTV-1综合',
+                    'CCTV2': 'CCTV-2财经',
+                    'CCTV3': 'CCTV-3综艺',
+                    'CCTV4': 'CCTV-4中文国际',
+                    'CCTV5': 'CCTV-5体育',
+                    'CCTV5+': 'CCTV-5+体育赛事',
+                    'CCTV6': 'CCTV-6电影',
+                    'CCTV7': 'CCTV-7国防军事',
+                    'CCTV8': 'CCTV-8电视剧',
+                    'CCTV9': 'CCTV-9纪录',
+                    'CCTV10': 'CCTV-10科教',
+                    'CCTV11': 'CCTV-11戏曲',
+                    'CCTV12': 'CCTV-12社会与法',
+                    'CCTV13': 'CCTV-13新闻',
+                    'CCTV14': 'CCTV-14少儿',
+                    'CCTV15': 'CCTV-15音乐',
+                    'CCTV16': 'CCTV-16奥林匹克',
+                    'CCTV17': 'CCTV-17农业农村'
+                }
 
             def process(self):
                 with (
@@ -65,16 +79,9 @@ jobs:
                     # 跳过前两行说明
                     for line in content[2:]:
                         line = line.strip()
-                        if not line:
+                        if not line or '#genre#' in line or line.startswith('#'):
                             continue
                         
-                        # 直接跳过所有分组行
-                        if '#genre#' in line:
-                            continue
-                        # 跳过其他注释行
-                        if line.startswith('#'):
-                            continue
-                        # 确保是有效频道行
                         if ',' not in line:
                             continue
                         
@@ -82,53 +89,47 @@ jobs:
                         name, url = name.strip(), url.strip()
                         
                         # 原版写入（保留原始数据）
-                        self._write_entry(f_orig, name, "", url)
+                        self._write_entry(f_orig, name, "", name, url)
                         
                         # 跳过需要过滤的频道
                         if self.skip_pattern.search(name):
                             continue
                         
-                        # 标准化名称
-                        norm_name = self._normalize_name(name)
-                        final_name, is_cctv = self._process_channel(norm_name)
+                        # 标准化处理
+                        final_name, display_name, is_cctv = self._process_channel(name)
                         
-                        # 分类版写入（央视/卫视）
-                        self._write_entry(f_cat, final_name, "央视" if is_cctv else "卫视", url)
+                        # 分类版写入
+                        self._write_entry(f_cat, final_name, "央视" if is_cctv else "卫视", display_name, url)
                         # 无分组版写入
-                        self._write_entry(f_flat, final_name, "MY9", url)
-
-            def _normalize_name(self, name):
-                """标准化频道名称"""
-                name = name.upper()
-                return re.sub(r'[ -]|HD|SD|高清|标清|超清', '', name)
+                        self._write_entry(f_flat, final_name, "MY9", display_name, url)
 
             def _process_channel(self, name):
-                """处理频道并返回(最终名称, 是否央视)"""
-                # CCTV特殊处理
+                """返回 (final_name, display_name, is_cctv)"""
+                # CCTV处理
                 if 'CCTV' in name:
-                    for pattern, new_name in self.config['cctv_map'].items():
-                        if re.search(pattern, name):
-                            return new_name, True
-                    # 精确匹配CCTV编号
-                    if match := re.search(r'(CCTV\d{1,2})[^\d]', name.replace("0", "") + "HD"):
-                        return match.group(1), True
-                    return name, True
+                    # 检查标准名称
+                    for short, full in self.cctv_names.items():
+                        if short.replace('-', '') in name.replace('-', ''):
+                            return short, full, True
+                    # 特殊频道
+                    if '+' in name or 'PLUS' in name:
+                        return 'CCTV5+', 'CCTV-5+体育赛事', True
+                    return name, name, True
                 
-                # CETV/CGTN也算央视
+                # CETV/CGTN处理
                 if 'CETV' in name or 'CGTN' in name:
-                    return name, True
+                    return name, name, True
                     
-                # 其余全是卫视
-                return name, False
+                # 卫视处理
+                return name, name, False
 
-            def _write_entry(self, f, name, group, url):
-                """安全写入条目"""
-                safe_name = quote(name.replace("/", ""))
+            def _write_entry(self, f, tvg_name, group, display_name, url):
+                """写入标准格式条目"""
+                safe_name = quote(tvg_name.replace("/", ""))
                 f.write(
-                    f'#EXTINF:-1 tvg-id="{name}" '
-                    f'tvg-name="{name}" '
+                    f'#EXTINF:-1 tvg-name="{tvg_name}" '
                     f'tvg-logo="{self.config["logo"]}{safe_name}.png" '
-                    f'group-title="{group}",{name}\n'
+                    f'group-title="{group}",{display_name}\n'
                     f"{url}\n"
                 )
 
@@ -136,7 +137,7 @@ jobs:
             TVProcessor().process()
         EOF
 
-        python final_processor.py
+        python standard_processor.py
       
     - name: 推送到Gitee
       run: |
