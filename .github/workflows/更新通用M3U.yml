@@ -35,7 +35,7 @@ jobs:
             
             def __init__(self):
                 self.config = {
-                    'source': "https://raw.githubusercontent.com/jn950/live/main/tv/pllive.txt",
+                    'source': "https://my9.ltd/tv/pllive.txt",
                     'logo': "https://raw.githubusercontent.com/fanmingming/live/main/tv/",
                     'epg': "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml"
                 }
