@@ -7,107 +7,138 @@ on:
   - cron: '20 1,9 * * *'
 
 jobs:
-  process-tv-channels:
+  process:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        python-version: '3.11'
+        cache: 'pip'
         
-    - name: Install dependencies
+    - name: Process Channels
       run: |
-        python -m pip install --upgrade pip
-        pip install requests pyyaml
-        
-    - name: Create processing script
-      run: |
-        cat << 'EOF' > process_tv.py
-        import re
-        import requests
+        cat <<'EOF'>optimized_processor.py
+        import re, requests
         from urllib.parse import quote
 
-        SOURCE_URL = "https://raw.githubusercontent.com/jn950/live/main/tv/pllive.txt"
-        LOGO_BASE_URL = "https://gitee.com/tyrian9905/iptv/raw/master/tvlogo/"
-        OUTPUT_FILE = "通用.m3u"
-        EPG_URL = "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml"
-
-        def process_tvname(tvname):
-            # 转换为大写并去除前后空格
-            tvname = tvname.upper().strip()
+        class TVProcessor:
+            __slots__ = ('config', 'skip_pattern')
             
-            # 检查4K/8K
-            if "4K" in tvname or "8K" in tvname:
-                return None
-                
-            # 去除不需要的字符
-            for pattern in [" ", "-", "HD", "SD", "高清", "标清", "超清"]:
-                tvname = tvname.replace(pattern, "")
-                
-            # 处理CCTV特殊频道
-            if "CCTV" in tvname:
-                if "+" in tvname or "PLUS" in tvname:
-                    return "CCTV5+"
-                elif "3D" in tvname:
-                    return "CCTV3D"
-                elif "美洲" in tvname or "AME" in tvname:
-                    return "CCTV4美洲"
-                elif "欧洲" in tvname or "EUO" in tvname:
-                    return "CCTV4欧洲"
-                elif "10" in tvname:
-                    return "CCTV10"
-                else:
-                    match = re.search(r"(CCTV\d{1,2})", tvname)
-                    if match:
-                        return match.group(1)
-            return tvname
+            def __init__(self):
+                self.config = {
+                    'source': "https://raw.githubusercontent.com/jn950/live/main/tv/pllive.txt",
+                    'logo': "https://raw.githubusercontent.com/fanmingming/live/main/tv/",
+                    'epg': "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml",
+                    'cctv_map': {
+                        r'\+|PLUS': 'CCTV5+',
+                        '3D': 'CCTV3D',
+                        '美洲|AME': 'CCTV4美洲',
+                        '欧洲|EUO': 'CCTV4欧洲',
+                        '10': 'CCTV10'
+                    }
+                }
+                # 编译高效跳过模式 (卫视1-12 + 卫视F + 4K/8K)
+                self.skip_pattern = re.compile(
+                    r'卫视([1-9]|1[0-2])|卫视F|4K|8K', 
+                    re.IGNORECASE
+                )
 
-        # 下载直播源
-        response = requests.get(SOURCE_URL)
-        response.raise_for_status()
-        lines = response.text.splitlines()[3:]  # 跳过前三行
+            def process(self):
+                with (
+                    open('MY9原版.m3u', 'w', encoding='utf-8') as f_orig,
+                    open('MY9分节目.m3u', 'w', encoding='utf-8') as f_cat,
+                    open('MY9无分组.m3u', 'w', encoding='utf-8') as f_flat
+                ):
+                    # 共享文件头
+                    header = f"#EXTM3U x-tvg-url=\"{self.config['epg']}\"\n"
+                    f_orig.write(header)
+                    f_cat.write(header)
+                    f_flat.write(header)
 
-        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-            f.write(f'#EXTM3U x-tvg-url="{EPG_URL}"\n')
-            
-            current_group = "IPTV"
-            for line in lines:
-                line = line.strip()
-                if not line:
-                    continue
-                    
-                if "#genre#" in line:
-                    # current_group = line.split(",")[0].strip()
-                    continue
-                    
-                if line.startswith("#"):
-                    continue
-                    
-                parts = line.split(",", 1)
-                if len(parts) != 2:
-                    continue
-                    
-                channel_name, url = parts
-                channel_name = channel_name.strip()
-                url = url.strip()
+                    current_group = ""
+                    for line in requests.get(self.config['source']).text.splitlines()[3:]:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        
+                        # 处理分组行
+                        if line.startswith('#genre#'):
+                            current_group = line.split(',')[0]
+                            continue
+                        elif line.startswith('#'):
+                            continue
+                        
+                        # 分割频道信息
+                        parts = line.split(',', 1)
+                        if len(parts) != 2:
+                            continue
+                        name, url = parts[0].strip(), parts[1].strip()
+                        
+                        # 原版写入 (保留所有内容)
+                        self._write_entry(f_orig, name, current_group, url)
+                        
+                        # 检查跳过规则 (使用预编译正则)
+                        if self.skip_pattern.search(name):
+                            continue
+                        
+                        # 标准化名称并分类
+                        norm_name = self._normalize_name(name)
+                        category = self._determine_category(norm_name)
+                        
+                        # 分类版写入
+                        self._write_entry(f_cat, norm_name, category, url)
+                        # 无分组版写入
+                        self._write_entry(f_flat, norm_name, "IPTV", url)
+
+            def _normalize_name(self, name):
+                """标准化频道名称"""
+                name = name.upper()
+                # 移除空格/符号/画质标识
+                return re.sub(
+                    r'[ -]|HD|SD|高清|标清|超清', 
+                    '', 
+                    name
+                )
+
+            def _determine_category(self, name):
+                """确定频道分类"""
+                # CCTV特殊处理
+                if 'CCTV' in name:
+                    for pattern, new_name in self.config['cctv_map'].items():
+                        if re.search(pattern, name):
+                            return '央视'
+                    return '央视'
                 
-                processed_name = process_tvname(channel_name)
-                if not processed_name:
-                    continue
-                    
-                encoded_name = quote(processed_name.replace(" ", "-").replace("/", ""))
-                logo_url = f"{LOGO_BASE_URL}{encoded_name}.png"
-                
-                f.write(f'#EXTINF:-1 tvg-id="{processed_name}" tvg-name="{processed_name}" tvg-logo="{logo_url}" group-title="{current_group}",{processed_name}\n')
-                f.write(f"{url}\n")
+                # 其他分类判断
+                if ('CETV' in name or 'CGTN' in name or
+                    '卫视' in name or
+                    '广东珠江' in name or
+                    '山东教育' in name or
+                    凤凰香港' in name or
+                    '凤凰中文' in name or
+                    '凤凰资讯' in name:
+                    return '卫视'
+                return '其他'
+
+            def _write_entry(self, f, name, group, url):
+                """通用写入方法"""
+                safe_name = quote(name.replace("/", ""))
+                f.write(
+                    f'#EXTINF:-1 tvg-id="{name}" '
+                    f'tvg-name="{name}" '
+                    f'tvg-logo="{self.config["logo"]}{safe_name}.png" '
+                    f'group-title="{group}",{name}\n'
+                    f"{url}\n"
+                )
+
+        if __name__ == '__main__':
+            TVProcessor().process()
         EOF
-        
-    - name: Run processing script
-      run: python process_tv.py
+
+        python optimized_processor.py
       
     - name: 推送到Gitee
       run: |
@@ -128,10 +159,12 @@ jobs:
         cd ${REPO}
         
         # 复制文件
-        cp ../通用.m3u ./
+        cp ../MY9原版.m3u ./
+        cp ../MY9分节目.m3u ./
+        cp ../MY9无分组.m3u ./
         
         # 提交并推送
-        git add 通用.m3u
+        git add 通用.m3u MY9分节目.m3u MY9无分组.m3u
         git commit -m "自动同步 ${BEIJING_TIME}"
         git push origin master
         
