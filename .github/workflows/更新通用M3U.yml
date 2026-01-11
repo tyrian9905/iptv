@@ -26,12 +26,12 @@ jobs:
         
     - name: Process Channels
       run: |
-        cat <<'EOF'>complete_processor.py
+        cat <<'EOF'>vb6_processor.py
         import re, requests
         from urllib.parse import quote
 
         class TVProcessor:
-            __slots__ = ('config', 'skip_pattern', 'cctv_names')
+            __slots__ = ('config', 'skip_pattern')
             
             def __init__(self):
                 self.config = {
@@ -40,27 +40,6 @@ jobs:
                     'epg': "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml"
                 }
                 self.skip_pattern = re.compile(r'卫视([1-9]|1[0-2])|卫视F|4K|8K', re.IGNORECASE)
-                # CCTV标准名称映射
-                self.cctv_names = {
-                    'CCTV1': 'CCTV-1综合',
-                    'CCTV2': 'CCTV-2财经',
-                    'CCTV3': 'CCTV-3综艺',
-                    'CCTV4': 'CCTV-4中文国际',
-                    'CCTV5': 'CCTV-5体育',
-                    'CCTV5+': 'CCTV-5+体育赛事',
-                    'CCTV6': 'CCTV-6电影',
-                    'CCTV7': 'CCTV-7国防军事',
-                    'CCTV8': 'CCTV-8电视剧',
-                    'CCTV9': 'CCTV-9纪录',
-                    'CCTV10': 'CCTV-10科教',
-                    'CCTV11': 'CCTV-11戏曲',
-                    'CCTV12': 'CCTV-12社会与法',
-                    'CCTV13': 'CCTV-13新闻',
-                    'CCTV14': 'CCTV-14少儿',
-                    'CCTV15': 'CCTV-15音乐',
-                    'CCTV16': 'CCTV-16奥林匹克',
-                    'CCTV17': 'CCTV-17农业农村'
-                }
 
             def process(self):
                 with (
@@ -88,64 +67,55 @@ jobs:
                         name, url = line.split(',', 1)
                         name, url = name.strip(), url.strip()
                         
-                        # MY9原版：使用原始名称（不做任何处理）
-                        self._write_entry(f_orig, name, "", name, url)
+                        # 对所有版本进行名称处理
+                        tv_name, group = self._vb6_style_process(name)
+                        
+                        # MY9原版：使用处理后的名称但保留原始分组
+                        self._write_entry(f_orig, tv_name, "", tv_name, url)
                         
                         # 跳过需要过滤的频道（仅用于分节目和无分组版本）
                         if self.skip_pattern.search(name):
                             continue
                         
-                        # MY9分节目和MY9无分组：处理电视台名称
-                        processed_name = self._normalize_name(name)
-                        final_name, display_name, is_cctv = self._process_channel(processed_name, name)
-                        
                         # MY9分节目：分类版
-                        self._write_entry(f_cat, final_name, "央视" if is_cctv else "卫视", display_name, url)
+                        self._write_entry(f_cat, tv_name, group, tv_name, url)
                         # MY9无分组：统一分组
-                        self._write_entry(f_flat, final_name, "MY9", display_name, url)
+                        self._write_entry(f_flat, tv_name, "MY9", tv_name, url)
 
-            def _normalize_name(self, name):
-                """执行所有指定的替换操作"""
-                name = name.upper().strip()
-                replacements = [
-                    (' ', ''),
-                    ('-', ''),
-                    ('HD', ''),
-                    ('SD', ''),
-                    ('高清', ''),
-                    ('标清', ''),
-                    ('超清', '')
-                ]
-                for old, new in replacements:
-                    name = name.replace(old, new)
-                return name
-
-            def _process_channel(self, processed_name, original_name):
-                """处理标准化后的名称，返回(tvg_name, display_name, is_cctv)"""
-                # 检查是否是CCTV频道（包含所有CCTV编号）
-                cctv_match = re.search(r'CCTV(\d{1,2}|\+)|CCTV(3D|美洲|欧洲)', processed_name, re.IGNORECASE)
-                if cctv_match:
-                    # 特殊CCTV频道处理
-                    if '+' in processed_name or 'PLUS' in processed_name:
-                        return 'CCTV5+', 'CCTV-5+体育赛事', True
-                    if '3D' in processed_name:
-                        return 'CCTV3D', 'CCTV3D', True
-                    if '美洲' in processed_name or 'AME' in processed_name:
-                        return 'CCTV4美洲', 'CCTV4美洲', True
-                    if '欧洲' in processed_name or 'EUO' in processed_name:
-                        return 'CCTV4欧洲', 'CCTV4欧洲', True
+            def _vb6_style_process(self, tvname):
+                """完全按照VB6逻辑处理频道名称"""
+                tvname_upper = tvname.upper()
+                
+                # CCTV处理
+                if "CCTV" in tvname_upper:
+                    group = "央视"
                     
-                    # 查找标准CCTV编号
-                    for short, full in self.cctv_names.items():
-                        if short.replace('-', '').replace('+', '') in processed_name.replace('-', '').replace('+', ''):
-                            return short, full, True
+                    # 特殊频道处理
+                    if "+" in tvname_upper or "PLUS" in tvname_upper:
+                        return "CCTV5+", group
+                    if "3D" in tvname_upper:
+                        return "CCTV3D", group
+                    if "美洲" in tvname_upper or "AME" in tvname_upper:
+                        return "CCTV4美洲", group
+                    if "欧洲" in tvname_upper or "EUO" in tvname_upper:
+                        return "CCTV4欧洲", group
+                    if "10" in tvname_upper:
+                        return "CCTV10", group
+                    
+                    # 处理数字频道
+                    matches = re.search(r"(CCTV\d{1,2})[^\d]", tvname_upper.replace("0", "") + "HD")
+                    if matches:
+                        return matches.group(1), group
+                    
+                    # 其他CCTV频道（如CCTV兵器科技）
+                    return tvname.replace("CCTV", ""), "专题"
                 
                 # CETV/CGTN处理
-                if 'CETV' in processed_name or 'CGTN' in processed_name:
-                    return processed_name, original_name, True
+                if "CETV" in tvname_upper or "CGTN" in tvname_upper:
+                    return tvname, "央视"
                     
                 # 卫视处理
-                return processed_name, original_name, False
+                return tvname, "卫视"
 
             def _write_entry(self, f, tvg_name, group, display_name, url):
                 """写入标准格式条目"""
@@ -161,7 +131,7 @@ jobs:
             TVProcessor().process()
         EOF
 
-        python complete_processor.py
+        python vb6_processor.py
       
     - name: 推送到Gitee
       run: |
