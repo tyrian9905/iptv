@@ -26,7 +26,7 @@ jobs:
         
     - name: Process Channels
       run: |
-        cat <<'EOF'>final_processor.py
+        cat <<'EOF'>complete_processor.py
         import re, requests
         from urllib.parse import quote
 
@@ -88,22 +88,20 @@ jobs:
                         name, url = line.split(',', 1)
                         name, url = name.strip(), url.strip()
                         
-                        # 执行所有指定的替换操作
-                        processed_name = self._normalize_name(name)
-                        
-                        # 原版写入（使用原始名称）
+                        # MY9原版：使用原始名称（不做任何处理）
                         self._write_entry(f_orig, name, "", name, url)
                         
-                        # 跳过需要过滤的频道
-                        if self.skip_pattern.search(processed_name):
+                        # 跳过需要过滤的频道（仅用于分节目和无分组版本）
+                        if self.skip_pattern.search(name):
                             continue
                         
-                        # 获取最终名称和分类
-                        final_name, display_name, is_cctv = self._process_channel(processed_name)
+                        # MY9分节目和MY9无分组：处理电视台名称
+                        processed_name = self._normalize_name(name)
+                        final_name, display_name, is_cctv = self._process_channel(processed_name, name)
                         
-                        # 分类版写入
+                        # MY9分节目：分类版
                         self._write_entry(f_cat, final_name, "央视" if is_cctv else "卫视", display_name, url)
-                        # 无分组版写入
+                        # MY9无分组：统一分组
                         self._write_entry(f_flat, final_name, "MY9", display_name, url)
 
             def _normalize_name(self, name):
@@ -122,25 +120,32 @@ jobs:
                     name = name.replace(old, new)
                 return name
 
-            def _process_channel(self, name):
-                """处理标准化后的名称"""
-                # CCTV处理
-                if 'CCTV' in name:
-                    # 检查标准名称
-                    for short, full in self.cctv_names.items():
-                        if short.replace('-', '') in name:
-                            return short, full, True
-                    # 特殊频道
-                    if '+' in name or 'PLUS' in name:
+            def _process_channel(self, processed_name, original_name):
+                """处理标准化后的名称，返回(tvg_name, display_name, is_cctv)"""
+                # 检查是否是CCTV频道（包含所有CCTV编号）
+                cctv_match = re.search(r'CCTV(\d{1,2}|\+)|CCTV(3D|美洲|欧洲)', processed_name, re.IGNORECASE)
+                if cctv_match:
+                    # 特殊CCTV频道处理
+                    if '+' in processed_name or 'PLUS' in processed_name:
                         return 'CCTV5+', 'CCTV-5+体育赛事', True
-                    return name, name, True
+                    if '3D' in processed_name:
+                        return 'CCTV3D', 'CCTV3D', True
+                    if '美洲' in processed_name or 'AME' in processed_name:
+                        return 'CCTV4美洲', 'CCTV4美洲', True
+                    if '欧洲' in processed_name or 'EUO' in processed_name:
+                        return 'CCTV4欧洲', 'CCTV4欧洲', True
+                    
+                    # 查找标准CCTV编号
+                    for short, full in self.cctv_names.items():
+                        if short.replace('-', '').replace('+', '') in processed_name.replace('-', '').replace('+', ''):
+                            return short, full, True
                 
                 # CETV/CGTN处理
-                if 'CETV' in name or 'CGTN' in name:
-                    return name, name, True
+                if 'CETV' in processed_name or 'CGTN' in processed_name:
+                    return processed_name, original_name, True
                     
                 # 卫视处理
-                return name, name, False
+                return processed_name, original_name, False
 
             def _write_entry(self, f, tvg_name, group, display_name, url):
                 """写入标准格式条目"""
@@ -156,7 +161,7 @@ jobs:
             TVProcessor().process()
         EOF
 
-        python final_processor.py
+        python complete_processor.py
       
     - name: 推送到Gitee
       run: |
