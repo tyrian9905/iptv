@@ -128,10 +128,10 @@ jobs:
         cd ${REPO}
         
         # 复制文件
-        cp ../OUTPUT_FILE ./
+        cp ../通用分平台.m3u ./
         
         # 提交并推送
-        git add OUTPUT_FILE
+        git add 通用分平台.m3u
         git commit -m "自动同步 ${BEIJING_TIME}"
         git push origin master
         
