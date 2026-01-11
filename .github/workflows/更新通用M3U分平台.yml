@@ -33,7 +33,7 @@ jobs:
 
         SOURCE_URL = "https://raw.githubusercontent.com/jn950/live/main/tv/pllive.txt"
         LOGO_BASE_URL = "https://gitee.com/tyrian9905/iptv/raw/master/tvlogo/"
-        OUTPUT_FILE = "通用.m3u"
+        OUTPUT_FILE = "通用分平台.m3u"
         EPG_URL = "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml"
 
         def process_tvname(tvname):
@@ -128,10 +128,10 @@ jobs:
         cd ${REPO}
         
         # 复制文件
-        cp ../通用.m3u ./
+        cp ../OUTPUT_FILE ./
         
         # 提交并推送
-        git add 通用.m3u
+        git add OUTPUT_FILE
         git commit -m "自动同步 ${BEIJING_TIME}"
         git push origin master
         
