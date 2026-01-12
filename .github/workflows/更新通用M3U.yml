@@ -15,140 +15,192 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/sup-python@v4
       with:
         python-version: '3.11'
         
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install requests pyyaml
+        pip install requests
         
-    - name: Process Channels
+    - name: Process TV Channels
       run: |
-        cat <<'EOF'>final_processor.py
-        import re, requests
+        cat <<'EOF'>tv_processor.py
+        import re
+        import requests
         from urllib.parse import quote
 
-        class TVProcessor:
-            __slots__ = ('config', 'skip_pattern')
-            
-            def __init__(self):
-                self.config = {
-                    'source': "https://my9.ltd/tv/pllive.txt",
-                    'logo': "https://raw.githubusercontent.com/fanmingming/live/main/tv/",
-                    'epg': "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml"
-                }
-                self.skip_pattern = re.compile(r'卫视([1-9]|1[0-2])|卫视F|4K|8K', re.IGNORECASE)
+        # 常量定义
+        SOURCE_URL = "https://raw.githubusercontent.com/jn950/live/refs/heads/main/tv/pllive.txt"
+        LOGO_URL = "https://raw.githubusercontent.com/fanmingming/live/main/tv/"
+        EPG_URL = "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml"
+        GROUP_FLAT = "MY9"
 
-            def process(self):
-                with (
-                    open('MY9原版.m3u', 'w', encoding='utf-8') as f_orig,
-                    open('MY9分节目.m3u', 'w', encoding='utf-8') as f_cat,
-                    open('MY9无分组.m3u', 'w', encoding='utf-8') as f_flat
-                ):
-                    # 写入文件头
-                    header = f"#EXTM3U x-tvg-url=\"{self.config['epg']}\"\n"
-                    f_orig.write(header)
-                    f_cat.write(header)
-                    f_flat.write(header)
-
-                    content = requests.get(self.config['source']).text.splitlines()
-                    
-                    # 跳过前两行说明
-                    for line in content[2:]:
-                        line = line.strip()
-                        if not line or '#genre#' in line or line.startswith('#'):
-                            continue
-                        
-                        if ',' not in line:
-                            continue
-                        
-                        original_name, url = line.split(',', 1)
-                        original_name, url = original_name.strip(), url.strip()
-                        
-                        # 第一步：执行所有指定的替换操作
-                        processed_name = self._standardize_name(original_name)
-                        
-                        # 第二步：按照VB6逻辑处理
-                        tv_name, group = self._vb6_style_process(processed_name, original_name)
-                        
-                        # MY9原版：使用处理后的名称但保留原始分组
-                        self._write_entry(f_orig, tv_name, "", original_name, url)
-                        
-                        # 跳过需要过滤的频道（仅用于分节目和无分组版本）
-                        if self.skip_pattern.search(processed_name):
-                            continue
-                        
-                        # MY9分节目：分类版
-                        self._write_entry(f_cat, tv_name, group, original_name, url)
-                        # MY9无分组：统一分组
-                        self._write_entry(f_flat, tv_name, "MY9", original_name, url)
-
-            def _standardize_name(self, name):
-                """执行所有指定的7次替换操作"""
-                name = name.upper().strip()
-                replacements = [
-                    (' ', ''),
-                    ('-', ''),
-                    ('HD', ''),
-                    ('SD', ''),
-                    ('高清', ''),
-                    ('标清', ''),
-                    ('超清', '')
-                ]
-                for old, new in replacements:
-                    name = name.replace(old, new)
-                return name
-
-            def _vb6_style_process(self, processed_name, original_name):
-                """按照VB6逻辑处理标准化后的名称"""
-                # CCTV处理
-                if "CCTV" in processed_name:
-                    group = "央视"
-                    
-                    # 特殊频道处理
-                    if "+" in processed_name or "PLUS" in processed_name:
-                        return "CCTV5+", group
-                    if "3D" in processed_name:
-                        return "CCTV3D", group
-                    if "美洲" in processed_name or "AME" in processed_name:
-                        return "CCTV4美洲", group
-                    if "欧洲" in processed_name or "EUO" in processed_name:
-                        return "CCTV4欧洲", group
-                    if "10" in processed_name:
-                        return "CCTV10", group
-                    
-                    # 处理数字频道
-                    matches = re.search(r"(CCTV\d{1,2})[^\d]", processed_name.replace("0", "") + "HD")
-                    if matches:
-                        return matches.group(1), group
-                    
-                    # 其他CCTV频道（如CCTV兵器科技）
-                    return original_name.replace("CCTV", ""), "专题"
+        def process_line_content(line, group_orig, group_cat):
+            """处理单行内容"""
+            line = line.strip()
+            # 20. 跳过空白行
+            if not line:
+                return group_orig, group_cat, None
                 
-                # CETV/CGTN处理
-                if "CETV" in processed_name or "CGTN" in processed_name:
-                    return original_name, "央视"
+            # 30. 分割行内容
+            str1, str2 = line.split(',', 1)
+            str1, str2 = str1.strip(), str2.strip()
+            
+            # 40. 根据str2的值处理
+            if not str2:  # 情况1: str2是空字符串
+                return group_orig, group_cat, None
+            elif str2 == "#genre#":  # 情况2: 是分组标识
+                group_orig = str1
+                return group_orig, group_cat, None
+            else:  # 情况3: 是频道行
+                dsname = str1
+                tvlink = str2
+                
+                # 50. 跳过4K/8K频道
+                if "4K" in dsname or "8K" in dsname:
+                    return group_orig, group_cat, None
+                
+                # 60. 标准化频道名称
+                tvname = dsname.upper()
+                for remove_str in [' ', '-', 'FHD', 'HD', 'SD', '高清', '标清', '超清']:
+                    tvname = tvname.replace(remove_str, '')
+                
+                return group_orig, group_cat, {
+                    'dsname': dsname,
+                    'tvname': tvname,
+                    'tvlink': tvlink
+                }
+
+        def process_cctv_channel(tvname, dsname):
+            """处理CCTV频道（80.三）"""
+            # 1. 3D频道
+            if "3D" in tvname:
+                return "CCTV3D", "CCTV 3D"
+            
+            # 2. 美洲频道
+            if "美洲" in tvname or "AME" in tvname:
+                return "CCTV4美洲", "CCTV-4 美洲"
+            
+            # 3. 欧洲频道
+            if "欧洲" in tvname or "EUO" in tvname:
+                return "CCTV4欧洲", "CCTV-4 欧洲"
+            
+            # 4. 5+频道
+            if "+" in tvname or "PLUS" in tvname:
+                return "CCTV5+", "CCTV-5+ 体育赛事"
+            
+            # 5. CCTV10
+            if "10" in tvname:
+                return "CCTV10", "CCTV-10 科教"
+            
+            # 6. 其他CCTV数字频道
+            modified_name = tvname.replace("0", "") + "HD"
+            pattern = r"(CCTV\d{1,2})[^\d]"
+            match = re.search(pattern, modified_name)
+            
+            if match:
+                cctv_num = match.group(1)
+                cctv_display_names = {
+                    "CCTV1": "CCTV-1 综合",
+                    "CCTV2": "CCTV-2 财经",
+                    "CCTV3": "CCTV-3 综艺",
+                    "CCTV4": "CCTV-4 中文国际",
+                    "CCTV5": "CCTV-5 体育",
+                    "CCTV6": "CCTV-6 电影",
+                    "CCTV7": "CCTV-7 国防军事",
+                    "CCTV8": "CCTV-8 电视剧",
+                    "CCTV9": "CCTV-9 纪录",
+                    "CCTV11": "CCTV-11 戏曲",
+                    "CCTV12": "CCTV-12 社会与法",
+                    "CCTV13": "CCTV-13 新闻",
+                    "CCTV14": "CCTV-14 少儿",
+                    "CCTV15": "CCTV-15 音乐",
+                    "CCTV16": "CCTV-16 奥林匹克",
+                    "CCTV17": "CCTV-17 农业农村"
+                }
+                display_name = cctv_display_names.get(cctv_num, dsname)
+                return cctv_num, display_name
+            
+            return tvname, dsname
+
+        def write_channel_entry(file, tvname, group, display_name, url):
+            """写入频道条目"""
+            safe_tvname = quote(tvname.replace("/", ""))
+            entry = f'#EXTINF:-1 tvg-name="{tvname}" '
+            entry += f'tvg-logo="{LOGO_URL}{safe_tvname}.png" '
+            entry += f'group-title="{group}",{display_name}\n'
+            entry += f"{url}\n"
+            file.write(entry)
+
+        def process_channels():
+            """主处理函数"""
+            # 10. 获取节目源内容（从第三行开始）
+            response = requests.get(SOURCE_URL)
+            lines = response.text.splitlines()
+            content_lines = lines[2:]  # 跳过前两行
+            
+            # 5. 打开输出文件
+            with (
+                open('MY9原版.m3u', 'w', encoding='utf-8') as f_orig,
+                open('MY9分节目.m3u', 'w', encoding='utf-8') as f_cat,
+                open('MY9无分组.m3u', 'w', encoding='utf-8') as f_flat
+            ):
+                # 写入文件头
+                header = f'#EXTM3U x-tvg-url="{EPG_URL}"\n'
+                f_orig.write(header)
+                f_cat.write(header)
+                f_flat.write(header)
+                
+                # 15. 初始化变量
+                group_orig = ""
+                group_cat = "卫视"
+                
+                # 处理每一行
+                for line in content_lines:
+                    result = process_line_content(line, group_orig, group_cat)
+                    group_orig, group_cat, channel_info = result
                     
-                # 卫视处理
-                return original_name, "卫视"
+                    if channel_info is None:
+                        continue
+                    
+                    dsname = channel_info['dsname']
+                    tvname = channel_info['tvname']
+                    tvlink = channel_info['tvlink']
+                    
+                    # 70. 写入原版文件
+                    write_channel_entry(f_orig, tvname, group_orig, dsname, tvlink)
+                    
+                    # 80. 处理分类逻辑
+                    current_group_cat = group_cat
+                    current_tvname = tvname
+                    current_dsname = dsname
+                    
+                    # 80.一 跳过特定卫视频道
+                    if re.search(r"卫视[\d]", tvname):
+                        continue
+                    
+                    # 80.二 处理CETV/CGTN
+                    if "CETV" in tvname or "CGTN" in tvname:
+                        current_group_cat = "央视"
+                    
+                    # 80.三 处理CCTV频道
+                    elif "CCTV" in tvname:
+                        current_group_cat = "央视"
+                        current_tvname, current_dsname = process_cctv_channel(tvname, dsname)
+                    
+                    # 90. 写入分类版
+                    write_channel_entry(f_cat, current_tvname, current_group_cat, current_dsname, tvlink)
+                    
+                    # 90. 写入无分组版
+                    write_channel_entry(f_flat, current_tvname, GROUP_FLAT, current_dsname, tvlink)
 
-            def _write_entry(self, f, tvg_name, group, display_name, url):
-                """写入标准格式条目"""
-                safe_name = quote(tvg_name.replace("/", ""))
-                f.write(
-                    f'#EXTINF:-1 tvg-name="{tvg_name}" '
-                    f'tvg-logo="{self.config["logo"]}{safe_name}.png" '
-                    f'group-title="{group}",{display_name}\n'
-                    f"{url}\n"
-                )
-
-        if __name__ == '__main__':
-            TVProcessor().process()
+        if __name__ == "__main__":
+            process_channels()
         EOF
-
-        python final_processor.py
+        
+        python tv_processor.py
       
     - name: 推送到Gitee
       run: |
