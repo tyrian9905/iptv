@@ -33,7 +33,7 @@ jobs:
 
         # ==================== 配置参数 ====================
         SOURCE_URL = "https://raw.githubusercontent.com/jn950/live/refs/heads/main/tv/pllive.txt"
-        LOGO_URL = "https://raw.githubusercontent.com/fanmingming/live/main/tv/"
+        LOGO_BASE_URL = "https://gitee.com/tyrian9905/iptv/raw/master/tvlogo/"
         EPG_URL = "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml"
         GROUP_FLAT = "MY9"
 
@@ -65,48 +65,158 @@ jobs:
                 tvname = tvname.replace(char, '')
             return tvname
 
-        def process_cctv_channel(tvname):
-            """步骤110-三: 处理CCTV频道"""
-            # 110-三-1: 3D频道
+        def process_special_channels(tvname, dsname):
+            """步骤90.2-90.4: 处理特殊频道名称"""
+            # 步骤90.2: 西藏卫视藏语
+            if "西藏卫视藏语" in tvname:
+                return "藏语卫视", "藏语卫视"
+            
+            # 步骤90.3: 第一财经
+            if tvname == "第一财经":
+                return "东方财经", "东方财经"
+            
+            # 步骤90.4: 中国交通频道
+            if tvname == "中国交通频道":
+                return "中国交通", "中国交通"
+            
+            return tvname, dsname
+
+        def process_cgtn_channels(tvname, dsname):
+            """步骤90.5: 处理CGTN频道"""
+            # 步骤90.5.1: CGTN英语
+            if "CGTN英语" in tvname:
+                return "CGTN", "CGTN"
+            
+            # 步骤90.5.2: 阿拉伯语
+            if "阿拉伯语" in tvname:
+                return "CGTN阿语", "CGTN阿拉伯语"
+            
+            # 步骤90.5.3: 西班牙语
+            if "西班牙语" in tvname:
+                return "CGTN西语", "CGTN西班牙语"
+            
+            return tvname, dsname
+
+        def process_cctv_channels(tvname):
+            """步骤90.6: 处理CCTV频道"""
+            # 步骤90.6.1: 3D频道
             if "3D" in tvname:
                 return "CCTV3D", "CCTV 3D"
             
-            # 110-三-2: 美洲频道
+            # 步骤90.6.2: 美洲频道
             if "美洲" in tvname or "AME" in tvname:
                 return "CCTV4美洲", "CCTV-4 美洲"
             
-            # 110-三-3: 欧洲频道
+            # 步骤90.6.3: 欧洲频道
             if "欧洲" in tvname or "EUO" in tvname:
                 return "CCTV4欧洲", "CCTV-4 欧洲"
             
-            # 110-三-4: 5+频道
+            # 步骤90.6.4: 5+频道
             if "+" in tvname or "PLUS" in tvname:
                 return "CCTV5+", "CCTV-5+ 体育赛事"
             
-            # 110-三-5: CCTV10
+            # 步骤90.6.5: CCTV10
             if "10" in tvname:
                 return "CCTV10", "CCTV-10 科教"
             
-            # 110-三-6: 其他CCTV数字频道
+            # 步骤90.6.6: 其他CCTV数字频道
             modified_name = tvname.replace("0", "") + "HD"
             pattern = r"(CCTV\d{1,2})[^\d]"
             match = re.search(pattern, modified_name)
             
             if match:
                 cctv_num = match.group(1)
-                display_name = CCTV_DISPLAY_NAMES.get(cctv_num, tvname)
+                display_name = CCTV_DISPLAY_NAMES.get(cctv_num, cctv_num)
                 return cctv_num, display_name
             
             return tvname, tvname
 
-        def write_channel_entry(file_obj, tvname, group_name, display_name, url):
+        def write_channel_entry(file_obj, tvname, group_name, display_name, url, logo_url):
             """写入M3U频道条目"""
             safe_tvname = quote(tvname.replace("/", ""))
             entry = f'#EXTINF:-1 tvg-name="{tvname}" '
-            entry += f'tvg-logo="{LOGO_URL}{safe_tvname}.png" '
+            entry += f'tvg-logo="{logo_url}" '
             entry += f'group-title="{group_name}",{display_name}\n'
             entry += f"{url}\n"
             file_obj.write(entry)
+
+        def build_logo_url(tvname):
+            """构建logo URL"""
+            safe_tvname = quote(tvname.replace("/", ""))
+            return f"{LOGO_BASE_URL}{safe_tvname}.png"
+
+        def process_channel_line(line, current_group_orig, current_group_cat):
+            """处理单行频道数据"""
+            # 步骤40: 跳过空白行
+            line = line.strip()
+            if not line:
+                return current_group_orig, current_group_cat, None
+            
+            # 步骤50: 分割行内容
+            parts = line.split(',', 1)
+            if len(parts) < 2:
+                return current_group_orig, current_group_cat, None
+            
+            str1, str2 = parts[0].strip(), parts[1].strip()
+            
+            # 步骤60: 处理str2的不同情况
+            if not str2:
+                # 情况1: str2为空，跳过
+                return current_group_orig, current_group_cat, None
+            elif str2 == "#genre#":
+                # 情况2: 分组行
+                return str1, current_group_cat, None
+            else:
+                # 情况3: 频道行
+                dsname = str1
+                tvlink = str2
+                
+                # 步骤70: 跳过4K/8K频道
+                if "4K" in dsname or "8K" in dsname:
+                    return current_group_orig, current_group_cat, None
+                
+                # 步骤80: 标准化频道名称
+                tvname = normalize_channel_name(dsname)
+                
+                # 保存原始显示名称
+                original_display_name = dsname
+                
+                # 步骤90: 处理频道逻辑
+                should_skip = False
+                final_group_cat = current_group_cat
+                final_tvname = tvname
+                final_display_name = original_display_name
+                
+                # 步骤90.1: 跳过特定卫视频道
+                if re.search(r"卫视[\d]", tvname):
+                    should_skip = True
+                
+                if not should_skip:
+                    # 步骤90.2-90.4: 处理特殊频道
+                    final_tvname, final_display_name = process_special_channels(tvname, original_display_name)
+                    
+                    # 步骤90.5: 处理CETV/CGTN
+                    if "CETV" in tvname or "CGTN" in tvname:
+                        final_group_cat = "央视"
+                        final_tvname, final_display_name = process_cgtn_channels(tvname, original_display_name)
+                    
+                    # 步骤90.6: 处理CCTV频道
+                    elif "CCTV" in tvname:
+                        final_group_cat = "央视"
+                        final_tvname, final_display_name = process_cctv_channels(tvname)
+                
+                if should_skip:
+                    return current_group_orig, current_group_cat, None
+                
+                return current_group_orig, current_group_cat, {
+                    'tvname': final_tvname,
+                    'original_display_name': original_display_name,
+                    'final_display_name': final_display_name,
+                    'tvlink': tvlink,
+                    'group_orig': current_group_orig,
+                    'group_cat': final_group_cat,
+                    'group_flat': GROUP_FLAT
+                }
 
         def main():
             """主处理函数"""
@@ -132,67 +242,32 @@ jobs:
                 
                 # 从第三行开始处理
                 for line in all_lines[2:]:
-                    # 步骤40: 跳过空白行
-                    line = line.strip()
-                    if not line:
+                    result = process_channel_line(line, group_orig, group_cat)
+                    group_orig, group_cat, channel_data = result
+                    
+                    if channel_data is None:
                         continue
                     
-                    # 步骤50: 分割行内容
-                    parts = line.split(',', 1)
-                    if len(parts) < 2:
-                        continue
+                    # 获取处理后的数据
+                    tvname = channel_data['tvname']
+                    original_display_name = channel_data['original_display_name']
+                    final_display_name = channel_data['final_display_name']
+                    tvlink = channel_data['tvlink']
+                    group_orig_value = channel_data['group_orig']
+                    group_cat_value = channel_data['group_cat']
+                    group_flat_value = channel_data['group_flat']
                     
-                    str1, str2 = parts[0].strip(), parts[1].strip()
+                    # 构建logo URL
+                    logo_url = build_logo_url(tvname)
                     
-                    # 步骤60: 处理str2的不同情况
-                    if not str2:
-                        # 情况1: str2为空，跳过
-                        continue
-                    elif str2 == "#genre#":
-                        # 情况2: 分组行
-                        group_orig = str1
-                        continue
-                    else:
-                        # 情况3: 频道行
-                        dsname = str1
-                        tvlink = str2
-                    
-                    # 步骤70: 跳过4K/8K频道
-                    if "4K" in dsname or "8K" in dsname:
-                        continue
-                    
-                    # 步骤80: 标准化频道名称
-                    tvname = normalize_channel_name(dsname)
-                    
-                    # 步骤90: 写入原版文件
-                    write_channel_entry(f_orig, tvname, group_orig, dsname, tvlink)
-                    
-                    # 步骤100: 重置dsname为tvname
-                    dsname = tvname
-                    
-                    # 步骤110: 处理分类逻辑
-                    current_group_cat = group_cat
-                    current_tvname = tvname
-                    current_dsname = dsname
-                    
-                    # 步骤110-一: 跳过特定卫视频道
-                    if re.search(r"卫视[\d]", tvname):
-                        continue
-                    
-                    # 步骤110-二: 处理CETV/CGTN
-                    if "CETV" in tvname or "CGTN" in tvname:
-                        current_group_cat = "央视"
-                    
-                    # 步骤110-三: 处理CCTV频道
-                    elif "CCTV" in tvname:
-                        current_group_cat = "央视"
-                        current_tvname, current_dsname = process_cctv_channel(tvname)
+                    # 步骤100: 写入原版文件
+                    write_channel_entry(f_orig, tvname, group_orig_value, original_display_name, tvlink, logo_url)
                     
                     # 步骤120: 写入分类版
-                    write_channel_entry(f_cat, current_tvname, current_group_cat, current_dsname, tvlink)
+                    write_channel_entry(f_cat, tvname, group_cat_value, final_display_name, tvlink, logo_url)
                     
                     # 步骤130: 写入无分组版
-                    write_channel_entry(f_flat, current_tvname, GROUP_FLAT, current_dsname, tvlink)
+                    write_channel_entry(f_flat, tvname, group_flat_value, final_display_name, tvlink, logo_url)
 
         if __name__ == "__main__":
             main()
