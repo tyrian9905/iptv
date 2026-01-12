@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # 手动触发
   schedule:
   # 北京时间凌晨2点 = UTC时间前一天18点
-  - cron: '20 1,9 * * *'
+  - cron: '0 2,10 * * *'
 
 jobs:
   process:
