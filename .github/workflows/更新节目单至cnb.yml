@@ -35,7 +35,7 @@ jobs:
         
         # 克隆仓库（方式2：分支迁移）
         echo "📥 克隆仓库..."
-        git clone --depth=1 "https://${TOKEN}@cnb.cool/${USER}/${REPO}.git" cnb-repo
+        git clone --depth=1 "https://${TOKEN}@cnb.cool/${USER}/${REPO}" cnb-repo
         
         # 进入仓库
         cd cnb-repo
