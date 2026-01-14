@@ -302,7 +302,7 @@ jobs:
         cp ../*.m3u ./ 2>/dev/null || true
         
         # 添加目录下所有文件
-        git add
+        git add .
         
         # 检查是否有变更
         if ! git diff --cached --quiet; then
