@@ -15,8 +15,8 @@ jobs:
       run: |
         wget -q https://epg.112114.xyz/pp.xml -O 1day112114_epg.xml
 
-      - name: Sync to CNB Repository
-        run: |
+    - name: Sync to CNB Repository
+      run: |
           echo "🔄 开始同步到 CNB.cool"
           
           # 变量设置
