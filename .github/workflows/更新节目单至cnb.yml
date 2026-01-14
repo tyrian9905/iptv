@@ -21,7 +21,7 @@ jobs:
           
           # 变量设置
           CNB_USER="tyrian9905"
-          CNB_REPO="IPTV"
+          CNB_REPO="work"
           CNB_TOKEN="${{ secrets.CNB_TOKEN }}"
           
           # 获取当前时间
@@ -32,10 +32,10 @@ jobs:
           
           # 克隆CNB仓库
           echo "📥 克隆目标仓库..."
-          git clone --depth=1 "https://${CNB_TOKEN}@cnb.cool/${CNB_USER}/${CNB_REPO}.git" cnb-sync
+          git clone --depth=1 "https://${CNB_TOKEN}@cnb.cool/${CNB_USER}/${CNB_REPO}.git" ${CNB_REPO}
           
           # 进入目录
-          cd cnb-sync
+          cd ${CNB_REPO}
           
           # 移除所有现有文件（保留.git目录）
           echo "🧹 清理目标仓库..."
