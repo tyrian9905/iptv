@@ -13,10 +13,6 @@ jobs:
     steps:
     - name: 下载EPG节目单
       run: |
-        wget -q https://epg.112114.xyz/pp.xml -O 1day112114_epg.xml
-
-    - name: 推送到Gitee
-      run: |
           git config --global user.name "Auto Sync"
           git config --global user.email "auto@sync.com"
           
@@ -39,6 +35,7 @@ jobs:
           fi
           
           # 步骤3：克隆CNB仓库（浅克隆）
+          set -x  # 开启调试模式（在脚本开头添加）
           echo "克隆CNB仓库到临时目录..."
           git clone --depth 1 https://cnb:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git || {
             echo "错误：克隆CNB仓库失败"
@@ -67,5 +64,6 @@ jobs:
           else
             echo "无文件变更，无需推送"
           fi
+          set +x  # 开启调试模式（在脚本开头添加）
           
           echo "同步完成！"
