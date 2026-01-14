@@ -10,30 +10,39 @@ jobs:
   fetch-ppxml:
     runs-on: ubuntu-latest
     steps:
-      # 步骤1：下载外部URL的pp.xml文件
-      - name: Download ppxml
+      # 步骤1：下载外部URL的pp.xml（保持原逻辑）
+      - name: Download ppxml from external URL
         run: |
           curl -o ppxml https://epg.112114.xyz/pp.xml
-          # 可选：验证文件是否存在（避免下载失败）
           if [ ! -f "ppxml" ]; then
             echo "下载失败：ppxml文件未找到"
             exit 1
           fi
 
-      # 步骤2：拉取/推送文件到CNB仓库
-      - name: Push to CNB
+      # 步骤2：使用fetch-git-file插件拉取CNB仓库的ppxml
+      - name: Fetch ppxml from CNB repo
         env:
-          CNB_TOKEN: ${{ secrets.CNB_TOKEN }}  # 使用GitHub Secrets中的令牌
+          CNB_TOKEN: ${{ secrets.CNB_TOKEN }}  # 从GitHub Secrets获取访问令牌
         run: |
-          # 进入CNB仓库目录（假设本地有该仓库，或通过git clone临时获取）
-          cd /path/to/cnb-repo  # 替换为你的CNB仓库本地路径
+          # 使用fetch-git-file插件，直接从CNB仓库拉取指定文件到临时目录（默认是_tmp_）
+          npx fetch-git-file \
+            --slug tyrian9905/work \  # CNB仓库路径（对应slug参数）
+            --ref main \                # 目标分支（假设CNB仓库的主分支是main）
+            --files ppxml \             # 要拉取的文件路径（与步骤1下载的文件一致）
+            --target _tmp_              # 临时存储目录（插件默认是_tmp_，可自定义）
+
+      # 步骤3：将临时目录的文件推送到CNB仓库（如果需要覆盖或新增）
+      - name: Push ppxml to CNB repo
+        env:
+          CNB_TOKEN: ${{ secrets.CNB_TOKEN }}
+        run: |
+          # 进入插件输出的临时目录（_tmp_）
+          cd _tmp_
           
-          # 拉取目标目录下的文件（避免覆盖已有文件）
-          git pull origin tyrian9905/work || true  # 若目录不存在，可能报错，忽略
+          # 拉取CNB目标目录的最新代码（避免覆盖已有文件）
+          git pull origin tyrian9905/work || true
           
-          # 将新文件添加到暂存区
+          # 添加、提交、推送文件
           git add tyrian9905/work/ppxml
-          
-          # 提交并推送（需填写CNB仓库的提交信息）
           git commit -m "Auto push ppxml from external URL"
           git push origin tyrian9905/work
