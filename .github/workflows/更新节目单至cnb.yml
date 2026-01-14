@@ -36,21 +36,10 @@ jobs:
           
           # 进入目录
           cd ${CNB_REPO}
-          
-          # 移除所有现有文件（保留.git目录）
-          echo "🧹 清理目标仓库..."
-          find . -maxdepth 1 ! -name '.git' ! -name '.' ! -name '..' -exec rm -rf {} +
-          
-          # 从源仓库复制所有文件
-          echo "📄 复制文件..."
-          cp -rf ../* . 2>/dev/null || true
-          cp -rf ../.* . 2>/dev/null || true
-          
-          # 移除不需要的文件
-          rm -rf .github/workflows/sync-to-cnb.yml 2>/dev/null || true
-          
-          # 添加所有文件
-          echo "📝 添加文件到Git..."
+        
+          # 复制文件
+          cp ../1day112114_epg.xml ./
+                    
           git add -A
           
           # 检查是否有变更
