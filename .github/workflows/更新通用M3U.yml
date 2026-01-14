@@ -277,32 +277,40 @@ jobs:
         
         python tv_processor.py
       
-    - name: 推送到Gitee
+    - name: 推送到CNB.COOL
       run: |
         # 配置Git
         git config --global user.name "Auto Sync"
         git config --global user.email "auto@sync.com"
         USER="tyrian9905"    # ← 用户名
-        REPO="iptv"        # ← 仓库名
+        REPO="work"        # ← 仓库名
         
         export TZ='Asia/Shanghai'
         # 获取北京时间
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
-        git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/${USER}/${REPO}.git
+        git clone https://oauth2:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git
         
         # 进入仓库并更新文件
         cd ${REPO}
         
-        # 复制文件
-        cp ../MY9原版.m3u ./
-        cp ../MY9分节目.m3u ./
-        cp ../MY9无分组.m3u ./
+        # 确保目录存在
+        mkdir -p iptv
         
-        # 提交并推送
-        git add MY9原版.m3u MY9分节目.m3u MY9无分组.m3u
-        git commit -m "自动同步 ${BEIJING_TIME}"
-        git push origin master
+        # 复制所有广告规则文件
+        cp ../*.* ./iptv/ 2>/dev/null || true
+        
+        # 添加dnsblock目录下所有文件
+        git add iptv/
+        
+        # 检查是否有变更
+        if ! git diff --cached --quiet; then
+          git commit -m "自动同步文件 ${BEIJING_TIME}"
+          git push origin main
+          echo "✅ 文件已同步到CNB！"
+        else
+          echo "⚠️ 没有文件变更，跳过提交"
+        fi
         
         echo "🎉 节目m3u更新成功！"
