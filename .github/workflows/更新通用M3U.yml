@@ -299,10 +299,10 @@ jobs:
         mkdir -p iptv
         
         # 复制所有广告规则文件
-        cp ../*.m3u ./iptv/ 2>/dev/null || true
+        cp ../*.m3u ./ 2>/dev/null || true
         
-        # 添加dnsblock目录下所有文件
-        git add iptv/
+        # 添加目录下所有文件
+        git add
         
         # 检查是否有变更
         if ! git diff --cached --quiet; then
