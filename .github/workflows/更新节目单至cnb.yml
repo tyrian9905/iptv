@@ -21,7 +21,7 @@ jobs:
         git config --global user.name "Auto Sync"
         git config --global user.email "auto@sync.com"
         USER="tyrian9905"    # ← 用户名
-        REPO="iptv"        # ← 仓库名
+        REPO="work"        # ← 仓库名
         
         export TZ='Asia/Shanghai'
         # 获取北京时间
