@@ -1,0 +1,44 @@
+name: 更新EPG节目单至cnb
+
+on:
+  workflow_dispatch:  # 手动触发
+  schedule:
+  # 北京时间凌晨2点 = UTC时间前一天18点
+  - cron: '15 16,18,20,22,0,2,4,6,8,10,12,14 * * *'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 下载EPG节目单
+      run: |
+        wget -q https://epg.112114.xyz/pp.xml -O 1day112114_epg.xml
+
+    - name: 推送到cnb
+      run: |
+        # 配置Git
+        git config --global user.name "Auto Sync"
+        git config --global user.email "auto@sync.com"
+        USER="tyrian9905"    # ← 用户名
+        REPO="work"        # ← 仓库名
+        
+        export TZ='Asia/Shanghai'
+        # 获取北京时间
+        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+        
+        # 克隆仓库
+        git clone https://oauth2:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git
+        
+        # 进入仓库并更新文件
+        cd ${REPO}
+        
+        # 复制文件
+        cp ../1day112114_epg.xml ./
+        
+        # 提交并推送
+        git add 1day112114_epg.xml
+        git commit -m "自动同步 ${BEIJING_TIME}"
+        git push origin master
+        
+        echo "🎉 节目单EPG成功！"
