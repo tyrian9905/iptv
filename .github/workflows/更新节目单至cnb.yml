@@ -18,8 +18,8 @@ jobs:
     - name: 推送到Gitee
       run: |
         # 配置Git
-        git config --global user.name "Auto Sync"
-        git config --global user.email "auto@sync.com"
+        git config --global user.name tyrian
+        git config --global user.email tyrian@noreply.gitcode.com
         USER="tyrian"    # ← 用户名
         REPO="work"        # ← 仓库名
         
