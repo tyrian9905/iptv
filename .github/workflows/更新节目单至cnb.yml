@@ -18,27 +18,49 @@ jobs:
     - name: 推送到Gitee
       run: |
         # 配置Git
-        git config --global user.name "Auto Sync"
-        git config --global user.email "auto@sync.com"
-        USER="tyrian9905"    # ← 用户名
-        REPO="work"        # ← 仓库名
-        
-        export TZ='Asia/Shanghai'
-        # 获取北京时间
-        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-        
-        # 克隆仓库
-        git clone https://cnb:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}
-        
-        # 进入仓库并更新文件
-        cd ${REPO}
-        
-        # 复制文件
-        cp ../1day112114_epg.xml ./
-        
-        # 提交并推送
-        git add 1day112114_epg.xml
-        git commit -m "自动同步 ${BEIJING_TIME}"
-        git push origin main
-        
-        echo "🎉 节目单EPG成功！"
+            git config --global user.name "Auto Sync"
+            git config --global user.email "auto@sync.com"
+            
+            USER="tyrian9905"    # CNB仓库用户名
+            REPO="work"         # 目标仓库名
+            BRANCH="main"       # CNB仓库分支（需确认是否为main）
+            
+            # 步骤1：下载外部ppxml文件并校验
+            echo "开始下载外部ppxml文件..."
+            curl -o 1day112114_epg.xml https://epg.112114.xyz/pp.xml || {
+              echo "错误：ppxml下载失败"
+              exit 1
+            }
+            
+            # 步骤2：克隆CNB仓库（浅克隆）
+            echo "克隆CNB仓库到临时目录..."
+            git clone --depth 1 https://cnb:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git || {
+              echo "错误：克隆CNB仓库失败"
+              exit 1
+            }
+            
+            # 步骤3：进入仓库目录并复制文件
+            echo "复制文件到仓库..."
+            cd ${REPO} || exit 1
+            mv 1day112114_epg.xml ./  # 确保文件在仓库根目录（或目标子目录）
+            
+            # 步骤4：拉取远程分支最新代码（避免冲突）
+            echo "拉取远程${BRANCH}分支最新代码..."
+            git pull origin ${BRANCH} -q --rebase || true  # 若分支不存在，忽略错误（首次克隆后可能无远程分支）
+            
+            # 步骤5：提交并推送（仅当有变更时）
+            echo "检查文件变更..."
+            if [ -n "$(git status --porcelain)" ]; then
+              echo "检测到文件变更，提交并推送..."
+              git add .
+              BEIJING_TIME=$(date +%Y%m%d%H%M%S)  # 动态生成时间
+              git commit -m "自动同步 ${BEIJING_TIME}"
+              git push origin ${BRANCH} || {
+                echo "错误：推送失败，请检查CNB_TOKEN权限"
+                exit 1
+              }
+            else
+              echo "无文件变更，无需推送"
+            fi
+            
+            echo "同步完成！"
