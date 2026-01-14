@@ -22,7 +22,7 @@ jobs:
         wget -q https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/AWAvenue-Ads-Rule.txt -O 秋风_冰盾.txt
         wget -q https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-domains.txt -O anti-ad_冰盾.txt
 
-    - name: 开始推送
+    - name: 推送到Gitee
       run: |
         # 配置Git
         git config --global user.name "Auto Sync"
@@ -30,12 +30,22 @@ jobs:
         USER="tyrian9905"
         REPO="iptv"
         
-        # 获取北京时间
         export TZ='Asia/Shanghai'
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
         git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/${USER}/${REPO}.git
+        
+        cd ${REPO}
+        
+        # 确保目录存在
+        mkdir -p adblock
+        
+        # 复制所有广告规则文件
+        cp ../*.txt ./dnsblock/ 2>/dev/null || true
+        
+        # 添加dnsblock目录下所有文件
+        git add adblock/
         
         cd ${REPO}
         
@@ -48,7 +58,7 @@ jobs:
         
         # 复制所有广告规则文件
         cp ../*.txt ./adblock/ 2>/dev/null || true
-        # 添加dnsblock目录下所有文件
+        # 添加目录下所有文件
         git add adblock/
         
         # 检查是否有变更
