@@ -33,12 +33,22 @@ jobs:
         # 进入仓库并更新文件
         cd ${REPO}
         
-        # 复制文件
-        cp ../1day112114_epg.xml ./
+        # 确保目录存在
+        mkdir -p iptv
         
-        # 提交并推送
-        git add 1day112114_epg.xml
-        git commit -m "自动同步 ${BEIJING_TIME}"
-        git push origin main
+        # 复制所有广告规则文件
+        cp ../*.txt ./iptv/ 2>/dev/null || true
+        
+        # 添加dnsblock目录下所有文件
+        git add iptv/
+        
+        # 检查是否有变更
+        if ! git diff --cached --quiet; then
+          git commit -m "自动同步文件 ${BEIJING_TIME}"
+          git push origin main
+          echo "✅ 文件已同步到CNB！"
+        else
+          echo "⚠️ 没有文件变更，跳过提交"
+        fi
         
         echo "🎉 节目单EPG成功！"
