@@ -39,6 +39,6 @@ jobs:
         # 提交并推送
         git add 1day112114_epg.xml
         git commit -m "自动同步 ${BEIJING_TIME}"
-        git push origin master
+        git push origin main
         
         echo "🎉 节目单EPG成功！"
