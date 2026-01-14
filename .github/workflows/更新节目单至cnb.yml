@@ -20,7 +20,7 @@ jobs:
         # 配置Git
         git config --global user.name tyrian
         git config --global user.email tyrian@noreply.gitcode.com
-        USER="tyrian"    # ← 用户名
+        USER="tyrian9905"    # ← 用户名
         REPO="work"        # ← 仓库名
         
         export TZ='Asia/Shanghai'
@@ -28,7 +28,7 @@ jobs:
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
-        git clone https://oauth2:${{ secrets.GITCODE_TOKEN }}@gitcode.com/${USER}/${REPO}.git
+        git clone https://oauth2:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git
         
         # 进入仓库并更新文件
         cd ${REPO}
