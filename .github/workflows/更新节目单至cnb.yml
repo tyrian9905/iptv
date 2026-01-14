@@ -15,30 +15,83 @@ jobs:
       run: |
         wget -q https://epg.112114.xyz/pp.xml -O 1day112114_epg.xml
 
-    - name: Sync to CNB Repository
+    - name: Configure Git for CNB
       run: |
-        # 配置Git
-        git config --global user.name "Auto Sync"
-        git config --global user.email "auto@sync.com"
-        USER="tyrian9905"    # ← 用户名
-        REPO="work"        # ← 仓库名
-        
-        export TZ='Asia/Shanghai'
-        # 获取北京时间
-        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-        
-        # 克隆仓库
-         git clone --depth=1 "https://${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}" ${REPO}
-        
-        # 进入仓库并更新文件
-        cd ${REPO}
-        
-        # 复制文件
-        cp ../1day112114_epg.xml ./
-        
-        # 提交并推送
-        git add 1day112114_epg.xml
-        git commit -m "自动同步 ${BEIJING_TIME}"
-        git push origin HEAD:main --force
-        
-        echo "🎉 节目单EPG成功！"
+          # 重要：必须设置CNB.cool要求的用户信息
+          git config --global user.name "cnb.bksHmtpvgGA"
+          git config --global user.email "mHca2rdBDfCrNrmhbqRCRB+cnb.bksHmtpvgGA@noreply.cnb.cool"
+          
+          echo "✅ Git配置完成"
+          git config --global --list | grep user
+          
+    - name: Sync to work.git repository
+      env:
+          CNB_TOKEN: ${{ secrets.CNB_TOKEN }}
+      run: |
+          echo "🔄 开始同步到 CNB.cool work.git 仓库..."
+          
+          # 重要：现在使用 work.git 而不是 IPTV.git
+          CNB_URL="https://${CNB_TOKEN}@cnb.cool/tyrian9905/work.git"
+          
+          # 北京时间
+          BEIJING_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
+          
+          echo "================================="
+          echo "同步配置:"
+          echo "目标仓库: ${CNB_URL}"
+          echo "同步时间: ${BEIJING_TIME}"
+          echo "源仓库: ${{ github.repository }}"
+          echo "触发方式: ${{ github.event_name }}"
+          echo "================================="
+          
+          # 克隆CNB仓库
+          echo "📥 克隆目标仓库..."
+          git clone --depth=1 "${CNB_URL}" cnb-work
+          
+          # 进入目录
+          cd cnb-work
+          
+          # 显示当前目录内容
+          echo "目标仓库内容:"
+          ls -la
+
+          # 复制新文件
+          echo "📄 复制EPG文件..."
+          cp -f "../1day112114_epg.xml" ./
+          
+          # 检查文件差异
+          echo "🔍 检查文件差异..."
+          if [ -f "${BACKUP_NAME}" ]; then
+            echo "新旧文件对比:"
+            diff -u "${BACKUP_NAME}" "1day112114_epg.xml" | head -20 || echo "文件相同或无法比较"
+          fi
+          
+          # 添加到Git
+          git add 1day112114_epg.xml
+          
+          # 检查是否有变更
+          if git diff --cached --quiet; then
+            echo "ℹ️ 没有检测到文件变更，跳过提交"
+            echo "当前文件哈希: $(md5sum 1day112114_epg.xml | cut -d' ' -f1)"
+          else
+            echo "✅ 检测到文件变更，准备提交..."
+            
+            # 提交信息
+            COMMIT_MSG="📺 更新EPG节目单 ${BEIJING_TIME}"
+            
+            # 提交
+            git commit -m "${COMMIT_MSG}"
+            
+            # 推送
+            echo "🚀 推送到CNB..."
+            git push origin HEAD:main
+            
+            echo "🎉 同步成功！"
+            echo "========================="
+            echo "同步完成:"
+            echo "时间: ${BEIJING_TIME}"
+            echo "仓库: https://cnb.cool/tyrian9905/work"
+            echo "文件: 1day112114_epg.xml"
+            echo "大小: $(wc -l < 1day112114_epg.xml) 行"
+            echo "========================="
+          fi
