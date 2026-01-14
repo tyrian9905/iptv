@@ -9,11 +9,17 @@ on:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
-    timeout-minutes: 1
-    permissions:
-      actions: write
+    permissions: write-all
     steps:
-      - name: Delete old runs
-        run: gh api -X DELETE repos/${{ github.repository }}/actions/runs/cleanup?older_than=0d
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const runs = await github.paginate(
+              github.rest.actions.listWorkflowRunsForRepo,
+              { owner: context.repo.owner, repo: context.repo.repo }
+            );
+            await Promise.all(runs.slice(50).map(run => 
+              github.rest.actions.deleteWorkflowRun({
+                owner: context.repo.owner, repo: context.repo.repo, run_id: run.id
+              })
+            ));
