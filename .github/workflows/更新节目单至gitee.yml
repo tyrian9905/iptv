@@ -64,7 +64,7 @@ jobs:
         # 检查是否有变更
         if ! git diff --cached --quiet; then
           git commit -m "自动同步DNS过滤文件 ${BEIJING_TIME}"
-          git push origin main
+          git push origin master
           echo "✅ 文件已同步！"
         else
           echo "⚠️ 没有文件变更，跳过提交"
