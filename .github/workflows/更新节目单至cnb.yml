@@ -28,7 +28,7 @@ jobs:
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
-         git clone --depth=1 "https://${CNB_TOKEN}@cnb.cool/${CNB_USER}/${CNB_REPO}.git" ${REPO}
+         git clone --depth=1 "https://${{ secrets.CNB_TOKEN }}@cnb.cool/${CNB_USER}/${CNB_REPO}.git" ${REPO}
         
         # 进入仓库并更新文件
         cd ${REPO}
