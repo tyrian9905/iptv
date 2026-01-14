@@ -13,8 +13,8 @@ jobs:
     steps:
     - name: 下载广告过滤文件
       run: |
-        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockfilterslite.txt -O 217heidai_adblockfilterslite.adblock
-        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnslite.txt -O 217heidai_adblockdnslite.adblock
+        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockfilterslite.txt -O 217heidai_adblockfilterslite.adb
+        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnslite.txt -O 217heidai_adblockdnslite.adb
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasqlite.txt -O 217heidai_dnsmasq.txt
         wget -q https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Dnsmasq.conf -O 秋风_dnsmasq.txt
         wget -q https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/adblock-for-dnsmasq.conf -O anti-ad_dnsmasq.txt
@@ -47,7 +47,7 @@ jobs:
         # git add 217heidai广告规则.txt 秋风广告规则.txt anti-ad广告规则.txt
         
         # 复制所有广告规则文件
-        cp ../*.txt ../*.adblock ./adblock/ 2>/dev/null || true
+        cp ../*.txt ../*.adb ./adblock/ 2>/dev/null || true
         # 添加dnsblock目录下所有文件
         git add adblock/
         
