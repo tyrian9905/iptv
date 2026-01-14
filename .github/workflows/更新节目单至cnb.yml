@@ -1,4 +1,4 @@
-name: 更新EPG节目单至cnb
+name: 更新EPG节目单cnb
 
 on:
   workflow_dispatch:  # 手动触发
@@ -13,57 +13,32 @@ jobs:
     steps:
     - name: 下载EPG节目单
       run: |
-          git config --global user.name "Auto Sync"
-          git config --global user.email "auto@sync.com"
-          
-          USER="tyrian9905"
-          REPO="work"
-          BRANCH="main"
-          
-          # 步骤1：下载外部ppxml文件（带错误检查）
-          echo "开始下载外部ppxml文件..."
-          curl -o 1day112114_epg.xml https://epg.112114.xyz/pp.xml || {
-            echo "错误：ppxml下载失败，请检查URL或网络"
-            exit 1
-          }
-          
-          # 步骤2：检查文件是否存在（关键修复！）
-          if [ ! -f "1day112114_epg.xml" ]; then
-            echo "错误：文件1day112114_epg.xml未找到"
-            ls -l  # 打印当前目录文件列表，辅助排查
-            exit 1
-          fi
-          
-          # 步骤3：克隆CNB仓库（浅克隆）
-          set -x  # 开启调试模式（在脚本开头添加）
-          echo "克隆CNB仓库到临时目录..."
-          git clone --depth 1 https://cnb:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git || {
-            echo "错误：克隆CNB仓库失败"
-            exit 1
-          }
-          
-          # 步骤4：进入仓库目录并复制文件
-          echo "复制文件到仓库..."
-          cd ${REPO} || exit 1
-          cp ../1day112114_epg.xml ./
-          
-          # 步骤5：拉取远程分支最新代码（避免冲突）
-          echo "拉取远程${BRANCH}分支最新代码..."
-          git pull origin ${BRANCH} -q --rebase || true
-          
-          # 步骤6：提交并推送（仅当有变更时）
-          echo "检查文件变更..."
-          if [ -n "$(git status --porcelain)" ]; then
-            BEIJING_TIME=$(date +%Y%m%d%H%M%S)
-            git add .
-            git commit -m "自动同步 ${BEIJING_TIME}"
-            git push origin ${BRANCH} || {
-              echo "错误：推送失败，请检查CNB_TOKEN权限"
-              exit 1
-            }
-          else
-            echo "无文件变更，无需推送"
-          fi
-          set +x  # 开启调试模式（在脚本开头添加）
-          
-          echo "同步完成！"
+        wget -q https://epg.112114.xyz/pp.xml -O 1day112114_epg.xml
+
+    - name: 推送到Gitee
+      run: |
+        # 配置Git
+        git config --global user.name "Auto Sync"
+        git config --global user.email "auto@sync.com"
+        USER="tyrian"    # ← 用户名
+        REPO="work"        # ← 仓库名
+        
+        export TZ='Asia/Shanghai'
+        # 获取北京时间
+        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+        
+        # 克隆仓库
+        git clone https://oauth2:${{ secrets.GITCODE_TOKEN }}@gitcode.com/${USER}/${REPO}.git
+        
+        # 进入仓库并更新文件
+        cd ${REPO}
+        
+        # 复制文件
+        cp ../1day112114_epg.xml ./
+        
+        # 提交并推送
+        git add 1day112114_epg.xml
+        git commit -m "自动同步 ${BEIJING_TIME}"
+        git push origin main
+        
+        echo "🎉 节目单EPG成功！"
