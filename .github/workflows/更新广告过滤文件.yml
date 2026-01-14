@@ -36,10 +36,13 @@ jobs:
         
         # 确保目录存在
         mkdir -p adblock
+
+        # 旧款复制文件和提交
+        # cp ../217heidai广告规则.txt ../秋风广告规则.txt ../anti-ad广告规则.txt ./dnsblock/
+        # git add 217heidai广告规则.txt 秋风广告规则.txt anti-ad广告规则.txt
         
         # 复制所有广告规则文件
         cp ../*.txt ./adblock/ 2>/dev/null || true
-        
         # 添加dnsblock目录下所有文件
         git add adblock/
         
