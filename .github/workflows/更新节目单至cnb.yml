@@ -17,51 +17,28 @@ jobs:
 
     - name: Sync to CNB Repository
       run: |
-          echo "🔄 开始同步到 CNB.cool"
-          
-          # 变量设置
-          CNB_USER="tyrian9905"
-          CNB_REPO="work"
-          CNB_TOKEN="${{ secrets.CNB_TOKEN }}"
-          
-          # 获取当前时间
-          BEIJING_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
-          
-          echo "目标仓库: https://cnb.cool/${CNB_USER}/${CNB_REPO}"
-          echo "同步时间: ${BEIJING_TIME}"
-          
-          # 克隆CNB仓库
-          echo "📥 克隆目标仓库..."
-          git clone --depth=1 "https://${CNB_TOKEN}@cnb.cool/${CNB_USER}/${CNB_REPO}.git" ${CNB_REPO}
-          
-          # 进入目录
-          cd ${CNB_REPO}
+        # 配置Git
+        git config --global user.name "Auto Sync"
+        git config --global user.email "auto@sync.com"
+        USER="tyrian9905"    # ← 用户名
+        REPO="iptv"        # ← 仓库名
         
-          # 复制文件
-          cp ../1day112114_epg.xml ./
-                    
-          git add -A
-          
-          # 检查是否有变更
-          if git diff --cached --quiet; then
-            echo "ℹ️ 没有检测到变更，跳过提交"
-          else
-            # 提交
-            echo "💾 提交更改..."
-            git commit -m "🔄 全量同步 ${BEIJING_TIME}
-            
-            同步详情:
-            - 源仓库: ${{ github.repository }}
-            - 提交哈希: ${{ github.sha }}
-            - 触发者: ${{ github.actor }}
-            - 时间: ${BEIJING_TIME}
-            - 运行ID: ${{ github.run_id }}
-            "
-            
-            # 推送
-            echo "🚀 推送到CNB..."
-            git push origin HEAD:main --force
-            
-            echo "✅ 同步完成！"
-            echo "🔗 仓库地址: https://cnb.cool/${CNB_USER}/${CNB_REPO}"
-          fi
+        export TZ='Asia/Shanghai'
+        # 获取北京时间
+        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+        
+        # 克隆仓库
+         git clone --depth=1 "https://${CNB_TOKEN}@cnb.cool/${CNB_USER}/${CNB_REPO}.git" ${REPO}
+        
+        # 进入仓库并更新文件
+        cd ${REPO}
+        
+        # 复制文件
+        cp ../1day112114_epg.xml ./
+        
+        # 提交并推送
+        git add 1day112114_epg.xml
+        git commit -m "自动同步 ${BEIJING_TIME}"
+        git push origin HEAD:main --force
+        
+        echo "🎉 节目单EPG成功！"
