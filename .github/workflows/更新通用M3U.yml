@@ -282,15 +282,15 @@ jobs:
         # 配置Git
         git config --global user.name "Auto Sync"
         git config --global user.email "auto@sync.com"
-        USER="tyrian"
-        REPO="work"
+        USER="tyrian9905"
+        REPO="iptv"
         
         # 获取北京时间
         export TZ='Asia/Shanghai'
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
-        git clone https://oauth2:${{ secrets.GITCODE_TOKEN }}@gitcode.com/${USER}/${REPO}.git
+        git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/${USER}/${REPO}.git
         
         # 进入仓库并更新文件
         cd ${REPO}
@@ -307,7 +307,7 @@ jobs:
         # 检查是否有变更
         if ! git diff --cached --quiet; then
           git commit -m "自动同步文件 ${BEIJING_TIME}"
-          git push origin main
+          git push origin master
           echo "✅ 文件已同步！"
         else
           echo "⚠️ 没有文件变更，跳过提交"
