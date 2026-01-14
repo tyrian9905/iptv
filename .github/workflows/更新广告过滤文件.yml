@@ -15,6 +15,7 @@ jobs:
       run: |
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockfilterslite.txt -O 217heidai_adblockfilterslite.txt
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockfilterslite.txt -O 217heidai_adblockdnslite.txt
+        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdomainlite.txt -O 217heidai_adblockdomainlite.txt
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasq.txt -O 217heidai广告规则.txt
         wget -q https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Dnsmasq.conf -O 秋风广告规则.txt
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasqlite.txt -O anti-ad广告规则.txt
