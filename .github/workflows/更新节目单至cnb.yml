@@ -1,4 +1,4 @@
-name: 更新EPG节目单至cnb
+name: 更新EPG节目单
 
 on:
   workflow_dispatch:  # 手动触发
@@ -7,42 +7,38 @@ on:
   - cron: '15 16,18,20,22,0,2,4,6,8,10,12,14 * * *'
 
 jobs:
-  fetch-ppxml:
+  sync:
     runs-on: ubuntu-latest
+    
     steps:
-      # 步骤1：下载外部URL的pp.xml（保持原逻辑）
-      - name: Download ppxml from external URL
-        run: |
-          curl -o ppxml https://epg.112114.xyz/pp.xml
-          if [ ! -f "ppxml" ]; then
-            echo "下载失败：ppxml文件未找到"
-            exit 1
-          fi
+    - name: 下载EPG节目单
+      run: |
+        wget -q https://epg.112114.xyz/pp.xml -O 1day112114_epg.xml
 
-      # 步骤2：使用fetch-git-file插件拉取CNB仓库的ppxml
-      - name: Fetch ppxml from CNB repo
-        env:
-          CNB_TOKEN: ${{ secrets.CNB_TOKEN }}  # 从GitHub Secrets获取访问令牌
-        run: |
-          # 使用fetch-git-file插件，直接从CNB仓库拉取指定文件到临时目录（默认是_tmp_）
-          npx fetch-git-file \
-            --slug tyrian9905/work \  # CNB仓库路径（对应slug参数）
-            --ref main \                # 目标分支（假设CNB仓库的主分支是main）
-            --files ppxml \             # 要拉取的文件路径（与步骤1下载的文件一致）
-            --target _tmp_              # 临时存储目录（插件默认是_tmp_，可自定义）
-
-      # 步骤3：将临时目录的文件推送到CNB仓库（如果需要覆盖或新增）
-      - name: Push ppxml to CNB repo
-        env:
-          CNB_TOKEN: ${{ secrets.CNB_TOKEN }}
-        run: |
-          # 进入插件输出的临时目录（_tmp_）
-          cd _tmp_
-          
-          # 拉取CNB目标目录的最新代码（避免覆盖已有文件）
-          git pull origin tyrian9905/work || true
-          
-          # 添加、提交、推送文件
-          git add tyrian9905/work/ppxml
-          git commit -m "Auto push ppxml from external URL"
-          git push origin tyrian9905/work
+    - name: 推送到Gitee
+      run: |
+        # 配置Git
+        git config --global user.name "Auto Sync"
+        git config --global user.email "auto@sync.com"
+        USER="tyrian9905"    # ← 用户名
+        REPO="work"        # ← 仓库名
+        
+        export TZ='Asia/Shanghai'
+        # 获取北京时间
+        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+        
+        # 克隆仓库
+        git clone https://cnb:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git
+        
+        # 进入仓库并更新文件
+        cd ${REPO}
+        
+        # 复制文件
+        cp ../1day112114_epg.xml ./
+        
+        # 提交并推送
+        git add 1day112114_epg.xml
+        git commit -m "自动同步 ${BEIJING_TIME}"
+        git push origin main
+        
+        echo "🎉 节目单EPG成功！"
