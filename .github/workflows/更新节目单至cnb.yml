@@ -7,91 +7,33 @@ on:
   - cron: '15 16,18,20,22,0,2,4,6,8,10,12,14 * * *'
 
 jobs:
-  sync:
+  fetch-ppxml:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: 下载EPG节目单
-      run: |
-        wget -q https://epg.112114.xyz/pp.xml -O 1day112114_epg.xml
-
-    - name: Configure Git for CNB
-      run: |
-          # 重要：必须设置CNB.cool要求的用户信息
-          git config --global user.name "cnb.bksHmtpvgGA"
-          git config --global user.email "mHca2rdBDfCrNrmhbqRCRB+cnb.bksHmtpvgGA@noreply.cnb.cool"
-          
-          echo "✅ Git配置完成"
-          git config --global --list | grep user
-          
-    - name: Sync to work.git repository
-      env:
-          CNB_TOKEN: ${{ secrets.CNB_TOKEN }}
-      run: |
-          echo "🔄 开始同步到 CNB.cool work.git 仓库..."
-          
-          # 重要：现在使用 work.git 而不是 IPTV.git
-          CNB_URL="https://${CNB_TOKEN}@cnb.cool/tyrian9905/work"
-          
-          # 北京时间
-          BEIJING_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
-          
-          echo "================================="
-          echo "同步配置:"
-          echo "目标仓库: ${CNB_URL}"
-          echo "同步时间: ${BEIJING_TIME}"
-          echo "源仓库: ${{ github.repository }}"
-          echo "触发方式: ${{ github.event_name }}"
-          echo "================================="
-          
-          # 克隆CNB仓库
-          echo "📥 克隆目标仓库..."
-          git clone --depth=1 "${CNB_URL}" cnb-work
-          
-          # 进入目录
-          cd cnb-work
-          
-          # 显示当前目录内容
-          echo "目标仓库内容:"
-          ls -la
-
-          # 复制新文件
-          echo "📄 复制EPG文件..."
-          cp -f "../1day112114_epg.xml" ./
-          
-          # 检查文件差异
-          echo "🔍 检查文件差异..."
-          if [ -f "${BACKUP_NAME}" ]; then
-            echo "新旧文件对比:"
-            diff -u "${BACKUP_NAME}" "1day112114_epg.xml" | head -20 || echo "文件相同或无法比较"
+      # 步骤1：下载外部URL的pp.xml文件
+      - name: Download ppxml
+        run: |
+          curl -o ppxml https://epg.112114.xyz/pp.xml
+          # 可选：验证文件是否存在（避免下载失败）
+          if [ ! -f "ppxml" ]; then
+            echo "下载失败：ppxml文件未找到"
+            exit 1
           fi
+
+      # 步骤2：拉取/推送文件到CNB仓库
+      - name: Push to CNB
+        env:
+          CNB_TOKEN: ${{ secrets.CNB_TOKEN }}  # 使用GitHub Secrets中的令牌
+        run: |
+          # 进入CNB仓库目录（假设本地有该仓库，或通过git clone临时获取）
+          cd /path/to/cnb-repo  # 替换为你的CNB仓库本地路径
           
-          # 添加到Git
-          git add 1day112114_epg.xml
+          # 拉取目标目录下的文件（避免覆盖已有文件）
+          git pull origin tyrian9905/work || true  # 若目录不存在，可能报错，忽略
           
-          # 检查是否有变更
-          if git diff --cached --quiet; then
-            echo "ℹ️ 没有检测到文件变更，跳过提交"
-            echo "当前文件哈希: $(md5sum 1day112114_epg.xml | cut -d' ' -f1)"
-          else
-            echo "✅ 检测到文件变更，准备提交..."
-            
-            # 提交信息
-            COMMIT_MSG="📺 更新EPG节目单 ${BEIJING_TIME}"
-            
-            # 提交
-            git commit -m "${COMMIT_MSG}"
-            
-            # 推送
-            echo "🚀 推送到CNB..."
-            git push origin HEAD:main
-            
-            echo "🎉 同步成功！"
-            echo "========================="
-            echo "同步完成:"
-            echo "时间: ${BEIJING_TIME}"
-            echo "仓库: https://cnb.cool/tyrian9905/work"
-            echo "文件: 1day112114_epg.xml"
-            echo "大小: $(wc -l < 1day112114_epg.xml) 行"
-            echo "========================="
-          fi
+          # 将新文件添加到暂存区
+          git add tyrian9905/work/ppxml
+          
+          # 提交并推送（需填写CNB仓库的提交信息）
+          git commit -m "Auto push ppxml from external URL"
+          git push origin tyrian9905/work
