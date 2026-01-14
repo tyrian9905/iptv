@@ -42,7 +42,7 @@ jobs:
         mkdir -p adblock
         
         # 复制所有广告规则文件
-        cp ../*.txt ./dnsblock/ 2>/dev/null || true
+        cp ../*.txt ./adblock/ 2>/dev/null || true
         
         # 添加dnsblock目录下所有文件
         git add adblock/
