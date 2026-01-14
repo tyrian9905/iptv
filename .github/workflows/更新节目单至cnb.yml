@@ -1,4 +1,4 @@
-name: 更新EPG节目单
+name: 更新EPG节目单至cnb
 
 on:
   workflow_dispatch:  # 手动触发
