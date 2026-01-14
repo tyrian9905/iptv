@@ -22,25 +22,37 @@ jobs:
         # 配置Git
         git config --global user.name "Auto Sync"
         git config --global user.email "auto@sync.com"
-        USER="tyrian9905"    # ← 用户名
-        REPO="iptv"        # ← 仓库名
+        USER="tyrian9905"
+        REPO="iptv"
         
         export TZ='Asia/Shanghai'
-        # 获取北京时间
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
         git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/${USER}/${REPO}.git
         
-        # 进入仓库并更新文件
         cd ${REPO}
         
-        # 复制文件
-        cp ../217heidai广告规则.txt ../秋风广告规则.txt ../anti-ad广告规则.txt ./dnsblock/
+        # 确保目录存在
+        mkdir -p dnsblock
         
-        # 提交并推送
-        git add 217heidai广告规则.txt 秋风广告规则.txt anti-ad广告规则.txt
-        git commit -m "自动同步 ${BEIJING_TIME}"
-        git push origin master
+        echo "正在复制文件到dnsblock目录..."
         
-        echo "🎉 DNS过滤文件更新成功！"
+        # 复制所有广告规则文件
+        cp ../*.txt ./dnsblock/ 2>/dev/null || true
+        
+        # 显示复制结果
+        echo "dnsblock目录内容:"
+        ls -la ./dnsblock/
+        
+        # 添加dnsblock目录下所有文件
+        git add dnsblock/
+        
+        # 检查是否有变更
+        if ! git diff --cached --quiet; then
+          git commit -m "自动同步DNS过滤文件 ${BEIJING_TIME}"
+          git push origin master
+          echo "✅ 文件已同步到Gitee！"
+        else
+          echo "⚠️ 没有文件变更，跳过提交"
+        fi
