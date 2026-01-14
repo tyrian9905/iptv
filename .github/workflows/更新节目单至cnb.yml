@@ -28,14 +28,14 @@ jobs:
         git config --global user.name "Auto Sync"
         git config --global user.email "auto@sync.com"
         USER="tyrian9905"
-        REPO="work"
+        REPO="iptv"
         
         # 获取北京时间
         export TZ='Asia/Shanghai'
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
-        git clone https://oauth2:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git
+        git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/${USER}/${REPO}.git
         
         cd ${REPO}
         
