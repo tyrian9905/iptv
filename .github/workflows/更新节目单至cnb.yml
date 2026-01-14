@@ -31,7 +31,7 @@ jobs:
           echo "🔄 开始同步到 CNB.cool work.git 仓库..."
           
           # 重要：现在使用 work.git 而不是 IPTV.git
-          CNB_URL="https://${CNB_TOKEN}@cnb.cool/tyrian9905/work.git"
+          CNB_URL="https://${CNB_TOKEN}@cnb.cool/tyrian9905/work"
           
           # 北京时间
           BEIJING_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
