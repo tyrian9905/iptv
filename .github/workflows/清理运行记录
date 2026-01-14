@@ -1,0 +1,22 @@
+name: Cleanup Old Workflow Runs
+
+on:
+  schedule:
+    # 每周一北京时间 5 点清理一次（根据需要调整频率）
+    - cron: '0 13 * * 1'
+  workflow_dispatch:  # 可选：允许手动触发
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      actions: write
+      contents: read
+      
+    steps:
+      - name: Cleanup workflow runs
+        uses: Mattraks/delete-workflow-runs@main
+        with:
+          retain_days: 1      # 保留最近 7 天的记录
+          keep_minimum_runs: 5 # 至少保留 10 条记录
