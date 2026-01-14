@@ -18,7 +18,7 @@ jobs:
         wget -q https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Dnsmasq.conf -O 秋风广告规则.txt
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasqlite.txt -O anti-ad广告规则.txt
 
-    - name: 推送到CNB
+    - name: 推送到CNB.COOL
       run: |
         # 配置Git
         git config --global user.name "Auto Sync"
