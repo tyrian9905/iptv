@@ -11,43 +11,34 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-        git config --global user.name "Auto Sync"
-        git config --global user.email "auto@sync.com"
-        
-        USER="tyrian9905"
-        REPO="work"
-        BRANCH="main"
-        
-        # 步骤1：下载外部ppxml文件（带错误检查）
+    - name: 下载EPG节目单
+      run: |
         wget -q https://epg.112114.xyz/pp.xml -O 1day112114_epg.xml
 
-        # 步骤3：克隆CNB仓库（浅克隆）
-        echo "克隆CNB仓库到临时目录..."
-        git clone --depth 1 https://cnb:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git || {
-          echo "错误：克隆CNB仓库失败"
-          exit 1
-        }
+    - name: 推送到Gitee
+      run: |
+        # 配置Git
+        git config --global user.name "Auto Sync"
+        git config --global user.email "auto@sync.com"
+        USER="tyrian9905"    # ← 用户名
+        REPO="iptv"        # ← 仓库名
         
-        # 步骤4：进入仓库目录并复制文件
-        cd ${REPO} || exit 1
-        mv 1day112114_epg.xml ./  # 确保文件在仓库根目录
+        export TZ='Asia/Shanghai'
+        # 获取北京时间
+        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
-        # 步骤5：拉取远程分支最新代码（避免冲突）
-        echo "拉取远程${BRANCH}分支最新代码..."
-        git pull origin ${BRANCH} -q --rebase || true
+        # 克隆仓库
+        git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/${USER}/${REPO}.git
         
-        # 步骤6：提交并推送（仅当有变更时）
-        echo "检查文件变更..."
-        if [ -n "$(git status --porcelain)" ]; then
-          BEIJING_TIME=$(date +%Y%m%d%H%M%S)
-          git add .
-          git commit -m "自动同步 ${BEIJING_TIME}"
-          git push origin ${BRANCH} || {
-            echo "错误：推送失败，请检查CNB_TOKEN权限"
-            exit 1
-          }
-        else
-          echo "无文件变更，无需推送"
-        fi
+        # 进入仓库并更新文件
+        cd ${REPO}
         
-        echo "同步完成！"
+        # 复制文件
+        cp ../1day112114_epg.xml ./
+        
+        # 提交并推送
+        git add 1day112114_epg.xml
+        git commit -m "自动同步 ${BEIJING_TIME}"
+        git push origin master
+        
+        echo "🎉 节目单EPG成功！"
