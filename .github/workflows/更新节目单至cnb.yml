@@ -1,54 +1,56 @@
-name: 更新EPG节目单cnb
+name: 更新广告过滤文件gitcode
 
 on:
   workflow_dispatch:  # 手动触发
   schedule:
   # 北京时间凌晨2点 = UTC时间前一天18点
-  - cron: '15 16,18,20,22,0,2,4,6,8,10,12,14 * * *'
+  - cron: '40 16,0,8 * * *'
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     
     steps:
-    - name: 下载EPG节目单
+    - name: 下载广告过滤文件
       run: |
-        wget -q https://epg.112114.xyz/pp.xml -O 1day112114_epg.xml
+        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockfilterslite.txt -O 217heidai_adblockfilterslite.txt
+        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasq.txt -O 217heidai广告规则.txt
+        wget -q https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Dnsmasq.conf -O 秋风广告规则.txt
+        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasqlite.txt -O anti-ad广告规则.txt
 
-    - name: 推送到Gitee
+    - name: 推送到GITCODE
       run: |
         # 配置Git
         git config --global user.name "Auto Sync"
         git config --global user.email "auto@sync.com"
-        USER="tyrian9905"    # ← 用户名
-        REPO="work"        # ← 仓库名
+        USER="tyrian9905"
+        REPO="work"
         
         export TZ='Asia/Shanghai'
-        # 获取北京时间
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
-        git clone https://oauth2:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git
+        git clone https://oauth2:${{ secrets.GITCODE_TOKEN }}@gitcode.com/${USER}/${REPO}.git
         
-        # 进入仓库并更新文件
         cd ${REPO}
         
         # 确保目录存在
-        mkdir -p iptv
+        mkdir -p adblock
+
+        # 旧款复制文件和提交
+        # cp ../217heidai广告规则.txt ../秋风广告规则.txt ../anti-ad广告规则.txt ./dnsblock/
+        # git add 217heidai广告规则.txt 秋风广告规则.txt anti-ad广告规则.txt
         
         # 复制所有广告规则文件
-        cp ../*.txt ./iptv/ 2>/dev/null || true
-        
+        cp ../*.txt ./adblock/ 2>/dev/null || true
         # 添加dnsblock目录下所有文件
-        git add iptv/
+        git add adblock/
         
         # 检查是否有变更
         if ! git diff --cached --quiet; then
-          git commit -m "自动同步文件 ${BEIJING_TIME}"
+          git commit -m "自动同步DNS过滤文件 ${BEIJING_TIME}"
           git push origin main
           echo "✅ 文件已同步到CNB！"
         else
           echo "⚠️ 没有文件变更，跳过提交"
         fi
-        
-        echo "🎉 节目单EPG成功！"
