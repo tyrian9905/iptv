@@ -15,30 +15,70 @@ jobs:
       run: |
         wget -q https://epg.112114.xyz/pp.xml -O 1day112114_epg.xml
 
-    - name: 推送到cnb
-      run: |
-        # 配置Git
-        git config --global user.name "Auto Sync"
-        git config --global user.email "auto@sync.com"
-        USER="tyrian9905"    # ← 用户名
-        REPO="work"        # ← 仓库名
-        
-        export TZ='Asia/Shanghai'
-        # 获取北京时间
-        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-        
-        # 克隆仓库
-        git clone --depth=1 "https://${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git" cnb-repo
-        
-        # 进入仓库并更新文件
-        cd ${REPO}
-        
-        # 复制文件
-        cp ../1day112114_epg.xml ./
-        
-        # 提交并推送
-        git add 1day112114_epg.xml
-        git commit -m "自动同步 ${BEIJING_TIME}"
-        git push origin HEAD:main
-        
-        echo "🎉 节目单EPG成功！"
+- name: 推送到cnb
+  run: |
+    # 设置变量
+    USER="tyrian9905"
+    REPO="work"  # ← 重要：改为 IPTV
+    TOKEN="${{ secrets.CNB_TOKEN }}"
+    
+    # 获取北京时间
+    export TZ='Asia/Shanghai'
+    BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+    
+    echo "🕐 开始时间: ${BEIJING_TIME}"
+    echo "📦 同步到 CNB.cool 仓库: ${REPO}"
+    
+    # 配置Git全局设置
+    git config --global user.name "GitHub Actions"
+    git config --global user.email "actions@github.com"
+    
+    # 克隆仓库（方式2：分支迁移）
+    echo "📥 克隆仓库..."
+    git clone --depth=1 "https://${TOKEN}@cnb.cool/${USER}/${REPO}.git" cnb-repo
+    
+    # 进入仓库
+    cd cnb-repo
+    
+    # 检查并复制文件
+    if [ -f "../1day112114_epg.xml" ]; then
+      echo "📄 复制文件..."
+      cp -f "../1day112114_epg.xml" ./
+      echo "文件信息:"
+      ls -lh 1day112114_epg.xml
+      echo "行数: $(wc -l < 1day112114_epg.xml)"
+    else
+      echo "❌ 错误：找不到 ../1day112114_epg.xml"
+      echo "当前目录: $(pwd)"
+      echo "上级目录内容:"
+      ls -la ../
+      exit 1
+    fi
+    
+    # 配置当前仓库的用户信息（可选，参考方式3）
+    git config --local user.name "cnb.bksHmtpvgGA"
+    git config --local user.email "mHca2rdBDfCrNrmhbqRCRB+cnb.bksHmtpvgGA@noreply.cnb.cool"
+    
+    # 添加文件
+    echo "📝 添加文件到Git..."
+    git add 1day112114_epg.xml
+    
+    # 检查是否有变化
+    if git diff --cached --quiet; then
+      echo "ℹ️ 没有检测到文件变化，跳过提交"
+    else
+      # 提交
+      echo "💾 提交更改..."
+      git commit -m "自动同步节目单EPG ${BEIJING_TIME}"
+      
+      # 推送（方式2）
+      echo "🚀 推送到远程仓库..."
+      git push origin HEAD:main  # 推送到main分支
+      
+      echo "🎉 节目单EPG同步成功！"
+      echo "📅 同步时间: ${BEIJING_TIME}"
+    fi
+    
+    # 显示远程信息
+    echo "🔗 远程仓库信息:"
+    git remote -v
