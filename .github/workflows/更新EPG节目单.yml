@@ -43,7 +43,8 @@ jobs:
         
         echo "🎉 节目单EPG成功！"
 
-      - name: Delete workflow runs
+    - name: Delete workflow runs
+      run: |
         uses: Mattraks/delete-workflow-runs@main
         with:
           retain_days: 1
