@@ -1,4 +1,4 @@
-name: 更新广告过滤文件gitcode
+name: 更新广告过滤文件cnb
 
 on:
   workflow_dispatch:  # 手动触发
@@ -14,23 +14,28 @@ jobs:
     - name: 下载广告过滤文件
       run: |
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockfilterslite.txt -O 217heidai_adblockfilterslite.txt
-        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasq.txt -O 217heidai广告规则.txt
-        wget -q https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Dnsmasq.conf -O 秋风广告规则.txt
-        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasqlite.txt -O anti-ad广告规则.txt
+        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnslite.txt -O 217heidai_adblockdnslite.txt
+        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasqlite.txt -O 217heidai_dnsmasq.txt
+        wget -q https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Dnsmasq.conf -O 秋风_dnsmasq.txt
+        wget -q https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/adblock-for-dnsmasq.conf -O anti-ad_dnsmasq.txt
+        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdomainlite.txt -O 217heidai_冰盾.txt
+        wget -q https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/AWAvenue-Ads-Rule.txt -O 秋风_冰盾.txt
+        wget -q https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-domains.txt -O anti-ad_冰盾.txt
 
-    - name: 推送到GITCODE
+    - name: 开始推送
       run: |
         # 配置Git
         git config --global user.name "Auto Sync"
         git config --global user.email "auto@sync.com"
-        USER="tyrian"
+        USER="tyrian9905"
         REPO="work"
         
+        # 获取北京时间
         export TZ='Asia/Shanghai'
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
-        git clone https://oauth2:${{ secrets.GITCODE_TOKEN }}@gitcode.com/${USER}/${REPO}.git
+        git clone https://oauth2:${{ secrets.CNB_TOKEN }}@gitcode.com/${USER}/${REPO}.git
         
         cd ${REPO}
         
@@ -50,7 +55,7 @@ jobs:
         if ! git diff --cached --quiet; then
           git commit -m "自动同步DNS过滤文件 ${BEIJING_TIME}"
           git push origin main
-          echo "✅ 文件已同步到CNB！"
+          echo "✅ 文件已同步！"
         else
           echo "⚠️ 没有文件变更，跳过提交"
         fi
