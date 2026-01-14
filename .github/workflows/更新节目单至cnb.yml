@@ -17,50 +17,55 @@ jobs:
 
     - name: 推送到Gitee
       run: |
-        # 配置Git
-            git config --global user.name "Auto Sync"
-            git config --global user.email "auto@sync.com"
-            
-            USER="tyrian9905"    # CNB仓库用户名
-            REPO="work"         # 目标仓库名
-            BRANCH="main"       # CNB仓库分支（需确认是否为main）
-            
-            # 步骤1：下载外部ppxml文件并校验
-            echo "开始下载外部ppxml文件..."
-            curl -o 1day112114_epg.xml https://epg.112114.xyz/pp.xml || {
-              echo "错误：ppxml下载失败"
+          git config --global user.name "Auto Sync"
+          git config --global user.email "auto@sync.com"
+          
+          USER="tyrian9905"
+          REPO="work"
+          BRANCH="main"
+          
+          # 步骤1：下载外部ppxml文件（带错误检查）
+          echo "开始下载外部ppxml文件..."
+          curl -o 1day112114_epg.xml https://epg.112114.xyz/pp.xml || {
+            echo "错误：ppxml下载失败，请检查URL或网络"
+            exit 1
+          }
+          
+          # 步骤2：检查文件是否存在（关键修复！）
+          if [ ! -f "1day112114_epg.xml" ]; then
+            echo "错误：文件1day112114_epg.xml未找到"
+            ls -l  # 打印当前目录文件列表，辅助排查
+            exit 1
+          fi
+          
+          # 步骤3：克隆CNB仓库（浅克隆）
+          echo "克隆CNB仓库到临时目录..."
+          git clone --depth 1 https://cnb:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git || {
+            echo "错误：克隆CNB仓库失败"
+            exit 1
+          }
+          
+          # 步骤4：进入仓库目录并复制文件
+          echo "复制文件到仓库..."
+          cd ${REPO} || exit 1
+          mv 1day112114_epg.xml ./  # 确保文件在仓库根目录
+          
+          # 步骤5：拉取远程分支最新代码（避免冲突）
+          echo "拉取远程${BRANCH}分支最新代码..."
+          git pull origin ${BRANCH} -q --rebase || true
+          
+          # 步骤6：提交并推送（仅当有变更时）
+          echo "检查文件变更..."
+          if [ -n "$(git status --porcelain)" ]; then
+            BEIJING_TIME=$(date +%Y%m%d%H%M%S)
+            git add .
+            git commit -m "自动同步 ${BEIJING_TIME}"
+            git push origin ${BRANCH} || {
+              echo "错误：推送失败，请检查CNB_TOKEN权限"
               exit 1
             }
-            
-            # 步骤2：克隆CNB仓库（浅克隆）
-            echo "克隆CNB仓库到临时目录..."
-            git clone --depth 1 https://cnb:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git || {
-              echo "错误：克隆CNB仓库失败"
-              exit 1
-            }
-            
-            # 步骤3：进入仓库目录并复制文件
-            echo "复制文件到仓库..."
-            cd ${REPO} || exit 1
-            mv 1day112114_epg.xml ./  # 确保文件在仓库根目录（或目标子目录）
-            
-            # 步骤4：拉取远程分支最新代码（避免冲突）
-            echo "拉取远程${BRANCH}分支最新代码..."
-            git pull origin ${BRANCH} -q --rebase || true  # 若分支不存在，忽略错误（首次克隆后可能无远程分支）
-            
-            # 步骤5：提交并推送（仅当有变更时）
-            echo "检查文件变更..."
-            if [ -n "$(git status --porcelain)" ]; then
-              echo "检测到文件变更，提交并推送..."
-              git add .
-              BEIJING_TIME=$(date +%Y%m%d%H%M%S)  # 动态生成时间
-              git commit -m "自动同步 ${BEIJING_TIME}"
-              git push origin ${BRANCH} || {
-                echo "错误：推送失败，请检查CNB_TOKEN权限"
-                exit 1
-              }
-            else
-              echo "无文件变更，无需推送"
-            fi
-            
-            echo "同步完成！"
+          else
+            echo "无文件变更，无需推送"
+          fi
+          
+          echo "同步完成！"
