@@ -15,7 +15,7 @@ jobs:
       run: |
         wget -q https://epg.112114.xyz/pp.xml -O 1day112114_epg.xml
 
-    - name: 推送到Gitee
+    - name: 推送到CNB.COOL
       run: |
         # 配置Git
         git config --global user.name "Auto Sync"
