@@ -15,20 +15,20 @@ jobs:
       run: |
         wget -q https://epg.112114.xyz/pp.xml -O 1day112114_epg.xml
 
-    - name: 推送到CNB.COOL
+    - name: 开始推送
       run: |
         # 配置Git
         git config --global user.name "Auto Sync"
         git config --global user.email "auto@sync.com"
-        USER="tyrian9905"    # ← 用户名
-        REPO="work"        # ← 仓库名
+        USER="tyrian"
+        REPO="work"
         
-        export TZ='Asia/Shanghai'
         # 获取北京时间
+        export TZ='Asia/Shanghai'
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
-        git clone https://oauth2:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git
+        git clone https://oauth2:${{ secrets.GITCODE_TOKEN }}@gitcode.com/${USER}/${REPO}.git
         
         # 进入仓库并更新文件
         cd ${REPO}
@@ -46,7 +46,7 @@ jobs:
         if ! git diff --cached --quiet; then
           git commit -m "自动同步文件 ${BEIJING_TIME}"
           git push origin main
-          echo "✅ 文件已同步到CNB！"
+          echo "✅ 文件已同步！"
         else
           echo "⚠️ 没有文件变更，跳过提交"
         fi
