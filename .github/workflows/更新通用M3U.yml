@@ -30,6 +30,7 @@ jobs:
         import re
         import requests
         from urllib.parse import quote
+        import sys
 
         # ==================== 配置参数 ====================
         SOURCE_URL = "https://raw.githubusercontent.com/jn950/live/refs/heads/main/tv/pllive.txt"
@@ -56,6 +57,24 @@ jobs:
             "CCTV16": "CCTV-16 奥林匹克",
             "CCTV17": "CCTV-17 农业农村"
         }
+
+        def check_source_content(content):
+            """检查源内容是否包含足够的IP:端口格式"""
+            # 正则匹配IP地址:端口格式
+            ip_port_pattern = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\:\d+'
+            matches = re.findall(ip_port_pattern, content)
+            
+            # 计算匹配到的数量
+            match_count = len(matches)
+            print(f"在源内容中找到 {match_count} 个IP:端口格式的匹配")
+            
+            # 如果少于10次匹配，返回False
+            if match_count < 10:
+                print(f"❌ 匹配到的IP:端口格式少于10个({match_count})，跳过处理")
+                return False
+            else:
+                print(f"✅ 匹配到的IP:端口格式足够({match_count}个)，开始处理")
+                return True
 
         def normalize_tvname(tvname):
             """步骤80: 标准化tvname"""
@@ -213,6 +232,16 @@ jobs:
 
         def main():
             """主处理函数"""
+            # 步骤20: 获取节目源内容
+            print("正在获取源内容...")
+            response = requests.get(SOURCE_URL)
+            source_content = response.text
+            
+            # 新增加的检查：验证源内容是否包含足够的IP:端口格式
+            if not check_source_content(source_content):
+                print("❌ 源内容不符合要求，结束脚本运行")
+                sys.exit(0)  # 正常退出，不执行后续处理
+            
             # 步骤10: 打开输出文件
             with (
                 open('MY9原版.m3u', 'w', encoding='utf-8') as f_orig,
@@ -229,9 +258,7 @@ jobs:
                 group_orig = ""
                 group_cat = "卫视"
                 
-                # 步骤20: 获取节目源内容
-                response = requests.get(SOURCE_URL)
-                all_lines = response.text.splitlines()
+                all_lines = source_content.splitlines()
                 
                 # 从第三行开始处理
                 for line in all_lines[2:]:
@@ -270,6 +297,8 @@ jobs:
                         channel_data['tvlink'],
                         channel_data['logo_url']
                     )
+                
+                print("✅ 处理完成，已生成M3U文件")
 
         if __name__ == "__main__":
             main()
