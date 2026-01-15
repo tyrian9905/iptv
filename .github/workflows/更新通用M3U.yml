@@ -239,7 +239,7 @@ jobs:
             
             # 新增加的检查：验证源内容是否包含足够的IP:端口格式
             if not check_source_content(source_content):
-                print("❌ 源内容不符合要求，结束脚本运行")
+                print("源内容不符合要求，结束脚本运行")
                 sys.exit(0)  # 正常退出，不执行后续处理
             
             # 步骤10: 打开输出文件
