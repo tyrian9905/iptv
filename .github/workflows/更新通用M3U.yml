@@ -70,7 +70,7 @@ jobs:
             
             # 如果少于10次匹配，返回False
             if match_count < 10:
-                print(f"❌ 匹配到的IP:端口格式少于10个({match_count})，跳过处理")
+                print(f"❌ 匹配到的IP:端口格式少于10个({match_count})，结束处理")
                 return False
             else:
                 print(f"✅ 匹配到的IP:端口格式足够({match_count}个)，开始处理")
@@ -239,8 +239,8 @@ jobs:
             
             # 新增加的检查：验证源内容是否包含足够的IP:端口格式
             if not check_source_content(source_content):
-                print("源内容不符合要求，结束脚本运行")
-                sys.exit(0)  # 正常退出，不执行后续处理
+                print("❌ 源内容不符合要求，结束脚本运行")
+                sys.exit(1)  # 使用非零退出码表示失败
             
             # 步骤10: 打开输出文件
             with (
@@ -307,6 +307,7 @@ jobs:
         python tv_processor.py
       
     - name: 开始推送
+      if: success()  # 只有前面的步骤都成功才执行推送
       run: |
         # 配置Git
         git config --global user.name "Auto Sync"
@@ -327,7 +328,13 @@ jobs:
         # 确保目录存在
         mkdir -p iptv
         
-        # 复制所有广告规则文件
+        # 检查M3U文件是否生成
+        if [ ! -f "../MY9原版.m3u" ]; then
+          echo "❌ M3U文件未生成，跳过推送"
+          exit 0
+        fi
+        
+        # 复制所有M3U文件
         cp ../*.m3u ./ 2>/dev/null || true
         
         # 添加目录下所有文件
