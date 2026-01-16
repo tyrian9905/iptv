@@ -37,7 +37,7 @@ jobs:
         mkdir -p iptv
         
         # 复制所有广告规则文件
-        cp ../*.xml ./iptv/ 2>/dev/null || true
+        cp ../*.xml ./ 2>/dev/null || true
         
         # 添加dnsblock目录下所有文件
         git add iptv/
