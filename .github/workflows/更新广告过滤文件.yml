@@ -16,7 +16,7 @@ jobs:
       run: |
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockfilterslite.txt -O 217heidai_adblockfilterslite.adb
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnslite.txt -O 217heidai_adblockdnslite.adb
-        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasqlite.txt -O dnsmasq.conf.adb
+        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasqlite.txt -O 217heidai_adblockdnsmasqlite.adb
         wget -q https://gitee.com/tyrian9905/iptv/raw/master/adblock/mydnsmasq.adb -O mydnsmasq.txt
         # wget -q https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Dnsmasq.conf -O 秋风_dnsmasq.txt
         # wget -q https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/adblock-for-dnsmasq.conf -O anti-ad_dnsmasq.txt
@@ -24,7 +24,7 @@ jobs:
         # wget -q https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/AWAvenue-Ads-Rule.txt -O 秋风_冰盾.txt
         # wget -q https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-domains.txt -O anti-ad_冰盾.txt
 
-        cat mydnsmasq.txt >> dnsmasq.conf.adb
+        cat mydnsmasq.txt >> 217heidai_adblockdnsmasqlite.adb
 
     - name: 开始推送
       run: |
