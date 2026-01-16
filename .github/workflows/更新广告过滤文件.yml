@@ -3,9 +3,9 @@ name: 更新广告过滤文件
 
 on:
   workflow_dispatch:  # 手动触发
-  #schedule:
-  # 北京时间凌晨2点 = UTC时间前一天18点
-  #- cron: '40 16,0,8 * * *'
+  schedule:
+    北京时间凌晨2点 = UTC时间前一天18点
+    - cron: '40 16,0,8 * * *'
 
 jobs:
   sync:
