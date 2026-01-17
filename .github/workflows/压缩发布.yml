@@ -58,7 +58,7 @@ jobs:
           nameserver 8.8.8.8 
           nameserver 4.4.4.4
           EOF
-          curl -k -L -o "/opt/st/alist-linux-musl-mipsle.tar.gz" "https://github.com/OpenListTeam/OpenList/releases/download/$tag/openlist-linux-musl-mipsle.tar.gz" 
+          curl -k -L -o "/opt/st/alist-linux-musl-mipsle.tar.gz" "https://github.com/OpenListTeam/OpenList/releases/download/$tag/musleabihf-armv7l-lite.tar.gz" 
           tar -xzvf /opt/st/alist-linux-musl-mipsle.tar.gz -C /opt/st
           upx --lzma --best openlist
           mv openlist alist
