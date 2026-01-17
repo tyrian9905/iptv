@@ -1,0 +1,131 @@
+name: 压缩发布
+
+on:
+  schedule:
+    - cron: '0 3,20 * * *'
+  workflow_dispatch:
+env:
+  TZ: Asia/Shanghai
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      ver: ${{ steps.getversion.outputs.ver }}
+      cver: ${{ steps.getversion.outputs.cver }}
+    steps:
+      - name: 检查更新
+        id: getversion
+        run: |
+          ver=`curl https://api.github.com/repos/OpenListTeam/OpenList/releases/latest | jq -r '.tag_name'`
+          cver=`curl https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.tag_name'`
+          echo "ver=${ver}"
+          echo "ver=${ver}" >> $GITHUB_OUTPUT
+          echo "cver=${cver}" >> $GITHUB_OUTPUT
+      - name: delete-workflow
+        uses: Mattraks/delete-workflow-runs@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          retain_days: 0
+          keep_minimum_runs: 0
+
+  build:
+    runs-on: ubuntu-latest
+    needs: check
+    if: ${{ needs.check.outputs.ver != needs.check.outputs.cver }}
+    steps:
+      -
+        name: 检查代码仓库
+        uses: actions/checkout@v4
+        
+      - name: 安装 UPX
+        uses: crazy-max/ghaction-upx@v3
+        with:
+          version: v4.2.4
+          install-only: true
+      - 
+        name: 下载并压缩
+        run: |
+          mkdir -p /opt/st
+          cd /opt/st
+          tag=${{ needs.check.outputs.ver }}
+          echo tag=$tag
+          sudo chmod 0777 /etc/resolv.conf
+          cat >>/etc/resolv.conf <<EOF
+          nameserver 8.8.8.8 
+          nameserver 4.4.4.4
+          EOF
+          curl -k -L -o "/opt/st/alist-linux-musl-mipsle.tar.gz" "https://github.com/OpenListTeam/OpenList/releases/download/$tag/openlist-linux-musl-mipsle.tar.gz" 
+          tar -xzvf /opt/st/alist-linux-musl-mipsle.tar.gz -C /opt/st
+          upx --lzma --best openlist
+          mv openlist alist
+          tar czvf alist.tar.gz alist
+          echo $(md5sum alist.tar.gz | awk '{print $1;}') >MD5.txt
+      - name: 设置机器人
+        run : |
+         git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+         git config --global user.name "github-actions[bot]"
+         sudo timedatectl set-timezone "Asia/Shanghai"
+      - name: 上传
+        run: |
+          [ ! -d "install/${{ needs.check.outputs.ver }}" ] && mkdir -p "install/${{ needs.check.outputs.ver }}"
+          cp -rf /opt/st/alist.tar.gz "install/${{ needs.check.outputs.ver }}/alist.tar.gz"
+          cp -rf /opt/st/alist "install/${{ needs.check.outputs.ver }}/alist"
+          echo $(md5sum /opt/st/alist | awk '{print $1;}') >"install/${{ needs.check.outputs.ver }}/MD5.txt"
+          git add .
+          git commit -am "${{ needs.check.outputs.ver }} 更新时间： $(date '+%Y-%m-%d %H:%M:%S')"
+          #git push --quiet "https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          echo "build_time=$(date '+%Y年%m月%d日%H:%M:%S' | jq -sRr @uri)" >> $GITHUB_ENV
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          force_with_lease: true
+      - 
+        name: 发布
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+           > ### ![](https://img.shields.io/badge/%E4%B8%8A%E4%BC%A0%E6%97%B6%E9%97%B4-${{ env.build_time }}-8267?logo=github&labelColor=%E9%A1%BB)![](https://img.shields.io/github/downloads/${{ github.repository }}/${{ needs.check.outputs.ver }}/total?label=%E4%B8%8B%E8%BD%BD%E6%AC%A1%E6%95%B0&logo=github)
+
+           **[官方更新说明](https://github.com/OpenListTeam/OpenList/releases)**
+          tag_name: ${{ needs.check.outputs.ver }}
+          files: |
+              /opt/st/alist.tar.gz
+              /opt/st/alist
+              /opt/st/MD5.txt
+  keepalive-workflow:
+    # github超过60天未提交将自动停止工作流
+    name: 工作流保活 
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      #- uses: gautamkrishnar/keepalive-workflow@v2
+        #with:
+          #use_api: true
+      - name: 检查上次提交日期
+        id: check_commit_date
+        run: |
+          # 获取上次提交日期（格式：YYYY-MM-DD）
+          LAST_COMMIT_DATE=$(git log -1 --format=%cd --date=short)
+          echo "上次提交日期: $LAST_COMMIT_DATE"
+          # 计算当前日期和上次提交日期的差值（单位：天）
+          LAST_COMMIT_TIMESTAMP=$(date -d "$LAST_COMMIT_DATE" +%s)
+          CURRENT_TIMESTAMP=$(date +%s)
+          DIFF_DAYS=$(( (CURRENT_TIMESTAMP - LAST_COMMIT_TIMESTAMP) / 86400 ))
+          echo "距离上次提交以来的天数: $DIFF_DAYS"
+          echo "diff_days=$DIFF_DAYS" >> $GITHUB_ENV
+      - name: 执行空提交
+        if: ${{ env.diff_days > 50 }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # 创建空提交
+          git commit --allow-empty -m "自动空提交，保持仓库活跃"
+          git push
