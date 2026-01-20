@@ -40,7 +40,8 @@ jobs:
         cp ../*.xml ./ 2>/dev/null || true
         
         # 添加dnsblock目录下所有文件
-        git add 
+        #git add iptv/
+        git add .
         
         # 检查是否有变更
         if ! git diff --cached --quiet; then
