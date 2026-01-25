@@ -13,5 +13,6 @@ jobs:
     steps:
     - name: 下载原始IPTV文件
       run: |
-        curl -s -o 港澳及4K.txt https://raw.githubusercontent.com/tyrian9905/iptv/main/港澳及4K.txt
-        echo 港澳及4K.txt
+        response=$(curl -s "https://raw.githubusercontent.com/tyrian9905/iptv/main/港澳及4K.txt" || echo "Failed to fetch data")
+        #curl -s -o 港澳及4K.txt https://raw.githubusercontent.com/tyrian9905/iptv/main/港澳及4K.txt
+        echo "$response"
