@@ -13,6 +13,5 @@ jobs:
     steps:
     - name: 下载原始IPTV文件
       run: |
-        response=$(curl -s "https://raw.githubusercontent.com/tyrian9905/iptv/main/港澳及4K.txt" || echo "Failed to fetch data")
-        #curl -s -o 港澳及4K.txt https://raw.githubusercontent.com/tyrian9905/iptv/main/港澳及4K.txt
+        response=$(curl -s "https://my9.ltd/tvsh/?t=migu&province=all&isp=all&limit=5&valid=1" || echo "Failed to fetch data")
         echo "$response"
