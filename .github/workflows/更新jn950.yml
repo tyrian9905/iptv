@@ -35,7 +35,7 @@ jobs:
         # ==================== 配置参数 ====================
         SOURCE_URL = "https://raw.githubusercontent.com/jn950/live/refs/heads/main/tv/pllive.txt"
         LOGO_BASE_URL = "https://gitee.com/tyrian9905/iptv/raw/master/tvlogo/"
-        EPG_URL = "https://gitee.com/taksssss/tv/raw/main/epg/112114.xml.gz"
+        EPG_URL = "https://gitee.com/taksssss/tv/raw/main/epg/51zmt.xml.gz"
         GROUP_FLAT = "MY9"
 
         # ==================== CCTV显示名称映射 ====================
