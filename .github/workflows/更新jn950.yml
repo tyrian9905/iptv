@@ -1,218 +1,257 @@
-name: 更新jn950
+name: 更新电视节目列表
 
 on:
   workflow_dispatch:  # 手动触发
   schedule:
-  # 北京时间凌晨2点 = UTC时间前一天18点
-  - cron: '0 2,10 * * *'
+    # 每天UTC时间18:00和02:00执行（北京时间02:00和10:00）
+    - cron: '0 2,10 * * *'
 
 jobs:
-  process:
+  process-tv-channels:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     
     steps:
+    # 步骤1: 检出代码
     - uses: actions/checkout@v4
     
-    - name: Set up Python
+    # 步骤2: 设置Python环境
+    - name: 设置Python环境
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        
-    - name: Install dependencies
+    
+    # 步骤3: 安装依赖
+    - name: 安装依赖
       run: |
         python -m pip install --upgrade pip
         pip install requests
-        
-    - name: Process TV Channels
+    
+    # 步骤4: 处理电视节目
+    - name: 处理电视节目源
       run: |
-        cat <<'EOF'>tv_processor.py
+        cat << 'EOF' > tv_processor.py
         import re
         import requests
         from urllib.parse import quote
+        import subprocess
         import sys
-
+        
         # ==================== 配置参数 ====================
         SOURCE_URL = "https://raw.githubusercontent.com/jn950/live/refs/heads/main/tv/pllive.txt"
+        EPG_URL = "https://gitee.com/tyrian9905/iptv/raw/master/1day112114_epg.xml"
         LOGO_BASE_URL = "https://gitee.com/tyrian9905/iptv/raw/master/tvlogo/"
-        EPG_URL = "https://gitee.com/taksssss/tv/raw/main/epg/51zmt.xml.gz"
         GROUP_FLAT = "MY9"
-
-        # ==================== CCTV显示名称映射 ====================
-        CCTV_DISPLAY_NAMES = {
-            "CCTV1": "CCTV-1 综合",
-            "CCTV2": "CCTV-2 财经",
-            "CCTV3": "CCTV-3 综艺",
-            "CCTV4": "CCTV-4 中文国际",
-            "CCTV5": "CCTV-5 体育",
-            "CCTV6": "CCTV-6 电影",
-            "CCTV7": "CCTV-7 国防军事",
-            "CCTV8": "CCTV-8 电视剧",
-            "CCTV9": "CCTV-9 纪录",
-            "CCTV11": "CCTV-11 戏曲",
-            "CCTV12": "CCTV-12 社会与法",
-            "CCTV13": "CCTV-13 新闻",
-            "CCTV14": "CCTV-14 少儿",
-            "CCTV15": "CCTV-15 音乐",
-            "CCTV16": "CCTV-16 奥林匹克",
-            "CCTV17": "CCTV-17 农业农村"
-        }
-
-        def check_source_content(content):
-            """检查源内容是否包含足够的IP:端口格式"""
-            # 正则匹配IP地址:端口格式
-            ip_port_pattern = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\:\d+'
-            matches = re.findall(ip_port_pattern, content)
-            
-            # 计算匹配到的数量
-            match_count = len(matches)
-            print(f"在源内容中找到 {match_count} 个IP:端口格式的匹配")
-            
-            # 如果少于10次匹配，返回False
-            if match_count < 10:
-                print(f"❌ 匹配到的IP:端口格式少于10个({match_count})，结束处理")
+        
+        # ==================== 辅助函数 ====================
+        def check_tvlink_availability(tvlink):
+            """检查TV链接是否可用"""
+            try:
+                # 使用curl检查链接状态
+                cmd = ['curl', '-o', '/dev/null', '--connect-timeout', '1', 
+                       '-m', '1', '-s', '-w', '%{http_code}', tvlink]
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                
+                if result.returncode == 0:
+                    http_code = result.stdout.strip()
+                    return http_code in ['200', '301', '302']
                 return False
-            else:
-                print(f"✅ 匹配到的IP:端口格式足够({match_count}个)，开始处理")
-                return True
-
+            except Exception:
+                return False
+        
         def normalize_tvname(tvname):
-            """步骤80: 标准化tvname"""
+            """标准化频道名称"""
+            # 转换为大写
             tvname = tvname.upper()
+            
+            # 移除不需要的字符串
             characters_to_remove = [' ', '-', 'FHD', 'HD', 'SD', '高清', '标清', '超清']
             for char in characters_to_remove:
                 tvname = tvname.replace(char, '')
+            
             return tvname
-
+        
         def process_special_channels(tvname):
-            """步骤100.1-100.3: 处理特殊频道名称"""
-            # 步骤100.1: 西藏卫视藏语
+            """处理特殊频道名称"""
+            display_name = tvname
+            
+            # 100.1: 西藏卫视藏语
             if "西藏卫视藏语" in tvname:
-                return "藏语卫视", "藏语卫视"
+                tvname = "藏语卫视"
+                display_name = "藏语卫视"
             
-            # 步骤100.2: 第一财经
-            if tvname == "第一财经":
-                return "东方财经", "东方财经"
+            # 100.2: 第一财经
+            elif tvname == "第一财经":
+                tvname = "东方财经"
+                display_name = "东方财经"
             
-            # 步骤100.3: 中国交通频道
-            if tvname == "中国交通频道":
-                return "中国交通", "中国交通"
+            # 100.3: 中国交通频道
+            elif tvname == "中国交通频道":
+                tvname = "中国交通"
+                display_name = "中国交通"
             
-            return tvname, tvname
-
+            return tvname, display_name
+        
         def process_cgtn_channels(tvname):
-            """步骤100.5: 处理CGTN频道"""
-            # 步骤100.5.1: CGTN英语
+            """处理CGTN频道"""
+            display_name = tvname
+            
+            # 100.5.1: CGTN英语
             if "CGTN英语" in tvname:
-                return "CGTN", "CGTN"
+                tvname = "CGTN"
+                display_name = "CGTN"
             
-            # 步骤100.5.2: 阿拉伯语
-            if "阿拉伯语" in tvname:
-                return "CGTN阿语", "CGTN阿拉伯语"
+            # 100.5.2: 阿拉伯语
+            elif "阿拉伯语" in tvname:
+                tvname = "CGTN阿语"
+                display_name = "CGTN阿拉伯语"
             
-            # 步骤100.5.3: 西班牙语
-            if "西班牙语" in tvname:
-                return "CGTN西语", "CGTN西班牙语"
+            # 100.5.3: 西班牙语
+            elif "西班牙语" in tvname:
+                tvname = "CGTN西语"
+                display_name = "CGTN西班牙语"
             
-            return tvname, tvname
-
+            return tvname, display_name
+        
         def process_cctv_channels(tvname):
-            """步骤100.7: 处理CCTV频道"""
-            # 步骤100.7.1: 3D频道
+            """处理CCTV频道"""
+            display_name = tvname
+            
+            # CCTV显示名称映射
+            cctv_display_names = {
+                "CCTV1": "CCTV-1 综合",
+                "CCTV2": "CCTV-2 财经",
+                "CCTV3": "CCTV-3 综艺",
+                "CCTV4": "CCTV-4 中文国际",
+                "CCTV5": "CCTV-5 体育",
+                "CCTV6": "CCTV-6 电影",
+                "CCTV7": "CCTV-7 国防军事",
+                "CCTV8": "CCTV-8 电视剧",
+                "CCTV9": "CCTV-9 纪录",
+                "CCTV11": "CCTV-11 戏曲",
+                "CCTV12": "CCTV-12 社会与法",
+                "CCTV13": "CCTV-13 新闻",
+                "CCTV14": "CCTV-14 少儿",
+                "CCTV15": "CCTV-15 音乐",
+                "CCTV16": "CCTV-16 奥林匹克",
+                "CCTV17": "CCTV-17 农业农村"
+            }
+            
+            # 100.7.1: 3D频道
             if "3D" in tvname:
-                return "CCTV3D", "CCTV 3D"
+                tvname = "CCTV3D"
+                display_name = "CCTV 3D"
             
-            # 步骤100.7.2: 美洲频道
-            if "美洲" in tvname or "AME" in tvname:
-                return "CCTV4美洲", "CCTV-4 美洲"
+            # 100.7.2: 美洲频道
+            elif "美洲" in tvname or "AME" in tvname:
+                tvname = "CCTV4美洲"
+                display_name = "CCTV-4 美洲"
             
-            # 步骤100.7.3: 欧洲频道
-            if "欧洲" in tvname or "EUO" in tvname:
-                return "CCTV4欧洲", "CCTV-4 欧洲"
+            # 100.7.3: 欧洲频道
+            elif "欧洲" in tvname or "EUO" in tvname:
+                tvname = "CCTV4欧洲"
+                display_name = "CCTV-4 欧洲"
             
-            # 步骤100.7.4: 5+频道
-            if "+" in tvname or "PLUS" in tvname:
-                return "CCTV5+", "CCTV-5+ 体育赛事"
+            # 100.7.4: 5+频道
+            elif "+" in tvname or "PLUS" in tvname:
+                tvname = "CCTV5+"
+                display_name = "CCTV-5+ 体育赛事"
             
-            # 步骤100.7.5: CCTV10
-            if "10" in tvname:
-                return "CCTV10", "CCTV-10 科教"
+            # 100.7.5: CCTV10
+            elif "10" in tvname:
+                tvname = "CCTV10"
+                display_name = "CCTV-10 科教"
             
-            # 步骤100.7.6: 其他CCTV数字频道
-            modified_name = tvname.replace("0", "") + "HD"
-            pattern = r"(CCTV\d{1,2})[^\d]"
-            match = re.search(pattern, modified_name)
+            # 100.7.6: 其他CCTV数字频道
+            else:
+                # 移除0并添加HD
+                modified_name = tvname.replace("0", "") + "HD"
+                
+                # 使用正则提取CCTV数字
+                pattern = r"(CCTV\d{1,2})[^\d]"
+                match = re.search(pattern, modified_name)
+                
+                if match:
+                    tvname = match.group(1)
+                    display_name = cctv_display_names.get(tvname, tvname)
             
-            if match:
-                cctv_num = match.group(1)
-                display_name = CCTV_DISPLAY_NAMES.get(cctv_num, cctv_num)
-                return cctv_num, display_name
-            
-            return tvname, tvname
-
+            return tvname, display_name
+        
         def build_logo_url(tvname):
-            """构建logo URL"""
+            """构建Logo URL"""
+            # 移除斜杠并编码
             safe_tvname = quote(tvname.replace("/", ""))
             return f"{LOGO_BASE_URL}{safe_tvname}.png"
-
-        def write_channel_entry(file_obj, tvname, group_name, display_name, url, logo_url):
+        
+        def write_channel_entry(file_obj, tvname, group_name, display_name, tvlink, logo_url):
             """写入M3U频道条目"""
-            entry = f'#EXTINF:-1 tvg-name="{tvname}" '
-            entry += f'tvg-logo="{logo_url}" '
-            entry += f'group-title="{group_name}",{display_name}\n'
-            entry += f"{url}\n"
-            file_obj.write(entry)
-
+            # 构建EXTINF行
+            extinf_line = f'#EXTINF:-1 tvg-name="{tvname}" '
+            extinf_line += f'tvg-logo="{logo_url}" '
+            extinf_line += f'group-title="{group_name}",{display_name}'
+            
+            # 写入文件
+            file_obj.write(f"{extinf_line}\n")
+            file_obj.write(f"{tvlink}\n")
+        
         def process_line(line, current_group_orig, current_group_cat):
             """处理单行数据"""
-            # 步骤40: 跳过空白行
+            # 40: 跳过空白行
             line = line.strip()
             if not line:
                 return current_group_orig, current_group_cat, None
             
-            # 步骤50: 分割行内容
+            # 50: 分割行内容
             parts = line.split(',', 1)
             if len(parts) < 2:
                 return current_group_orig, current_group_cat, None
             
             str1, str2 = parts[0].strip(), parts[1].strip()
             
-            # 步骤60: 处理str2的不同情况
+            # 60: 根据str2的值处理
             if not str2:
                 # 情况1: str2为空，跳过
                 return current_group_orig, current_group_cat, None
+            
             elif str2 == "#genre#":
                 # 情况2: 分组行
                 return str1, current_group_cat, None
+            
             else:
                 # 情况3: 频道行
                 tvname = str1
                 tvlink = str2
                 
-                # 步骤70: 跳过4K/8K频道和特定卫视频道
-                if "4K" in tvname or "8K" in tvname or re.search(r"卫视[\d]", tvname):
+                # 70: 跳过4K/8K频道和特定卫视频道
+                if ("4K" in tvname or "8K" in tvname or 
+                    re.search(r"卫视[\d]", tvname)):
                     return current_group_orig, current_group_cat, None
                 
-                # 步骤80: 标准化tvname
+                # 75: 检查TV链接可用性
+                if not check_tvlink_availability(tvlink):
+                    print(f"跳过不可用链接: {tvlink}")
+                    return current_group_orig, current_group_cat, None
+                
+                # 80: 标准化tvname
                 tvname = normalize_tvname(tvname)
                 
-                # 步骤90: display_name初始化为tvname
+                # 90: display_name初始化为tvname
                 display_name = tvname
                 
-                # 步骤100: 根据tvname处理
+                # 100: 根据tvname处理
                 final_group_cat = current_group_cat
                 final_tvname = tvname
                 final_display_name = display_name
                 
-                # 步骤100.1-100.3: 处理特殊频道
+                # 100.1-100.3: 处理特殊频道
                 final_tvname, final_display_name = process_special_channels(final_tvname)
                 
-                # 步骤100.5: 处理CETV/CGTN
+                # 100.5: 处理CETV/CGTN
                 if "CETV" in final_tvname or "CGTN" in final_tvname:
                     final_group_cat = "央视"
                     final_tvname, final_display_name = process_cgtn_channels(final_tvname)
                 
-                # 步骤100.7: 处理CCTV频道
+                # 100.7: 处理CCTV频道
                 elif "CCTV" in final_tvname:
                     final_group_cat = "央视"
                     final_tvname, final_display_name = process_cctv_channels(final_tvname)
@@ -226,127 +265,115 @@ jobs:
                     'tvlink': tvlink,
                     'group_orig': current_group_orig,
                     'group_cat': final_group_cat,
-                    'group_flat': GROUP_FLAT,
                     'logo_url': logo_url
                 }
-
+        
         def main():
             """主处理函数"""
-            # 步骤20: 获取节目源内容
-            print("正在获取源内容...")
-            response = requests.get(SOURCE_URL)
-            source_content = response.text
-            
-            # 新增加的检查：验证源内容是否包含足够的IP:端口格式
-            if not check_source_content(source_content):
-                print("❌ 源内容不符合要求，结束脚本运行")
-                sys.exit(1)  # 使用非零退出码表示失败
-            
-            # 步骤10: 打开输出文件
-            with (
-                open('MY9原版.m3u', 'w', encoding='utf-8') as f_orig,
-                open('MY9分节目.m3u', 'w', encoding='utf-8') as f_cat,
-                open('MY9无分组.m3u', 'w', encoding='utf-8') as f_flat
-            ):
-                # 写入文件头
-                m3u_header = f'#EXTM3U x-tvg-url="{EPG_URL}"\n'
-                f_orig.write(m3u_header)
-                f_cat.write(m3u_header)
-                f_flat.write(m3u_header)
+            try:
+                # 获取源内容
+                print("正在获取节目源内容...")
+                response = requests.get(SOURCE_URL, timeout=10)
+                response.raise_for_status()
+                source_content = response.text
                 
-                # 步骤30: 初始化变量
-                group_orig = ""
-                group_cat = "卫视"
+                # 20: 从第三行开始处理
+                all_lines = source_content.splitlines()[2:]
+                print(f"共获取到 {len(all_lines)} 行数据")
                 
-                all_lines = source_content.splitlines()
-                
-                # 从第三行开始处理
-                for line in all_lines[2:]:
-                    result = process_line(line, group_orig, group_cat)
-                    group_orig, group_cat, channel_data = result
+                # 10: 打开输出文件并写入头部
+                with (
+                    open('MY9原版.m3u', 'w', encoding='utf-8') as f_orig,
+                    open('MY9分节目.m3u', 'w', encoding='utf-8') as f_cat,
+                    open('MY9无分组.m3u', 'w', encoding='utf-8') as f_flat
+                ):
+                    # 写入M3U头部
+                    m3u_header = f'#EXTM3U x-tvg-url="{EPG_URL}"\n'
+                    f_orig.write(m3u_header)
+                    f_cat.write(m3u_header)
+                    f_flat.write(m3u_header)
                     
-                    if channel_data is None:
-                        continue
+                    # 30: 初始化分组
+                    group_orig = ""
+                    group_cat = "卫视"
                     
-                    # 步骤110: 写入原版文件
-                    write_channel_entry(
-                        f_orig,
-                        channel_data['tvname'],
-                        channel_data['group_orig'],
-                        channel_data['display_name'],
-                        channel_data['tvlink'],
-                        channel_data['logo_url']
-                    )
+                    processed_count = 0
+                    skipped_count = 0
                     
-                    # 步骤120: 写入分类版
-                    write_channel_entry(
-                        f_cat,
-                        channel_data['tvname'],
-                        channel_data['group_cat'],
-                        channel_data['display_name'],
-                        channel_data['tvlink'],
-                        channel_data['logo_url']
-                    )
+                    # 处理每一行
+                    for line in all_lines:
+                        result = process_line(line, group_orig, group_cat)
+                        group_orig, group_cat, channel_data = result
+                        
+                        if channel_data is None:
+                            skipped_count += 1
+                            continue
+                        
+                        # 写入文件
+                        # 110: 写入原版
+                        write_channel_entry(
+                            f_orig,
+                            channel_data['tvname'],
+                            channel_data['group_orig'],
+                            channel_data['display_name'],
+                            channel_data['tvlink'],
+                            channel_data['logo_url']
+                        )
+                        
+                        # 120: 写入分类版
+                        write_channel_entry(
+                            f_cat,
+                            channel_data['tvname'],
+                            channel_data['group_cat'],
+                            channel_data['display_name'],
+                            channel_data['tvlink'],
+                            channel_data['logo_url']
+                        )
+                        
+                        # 130: 写入无分组版
+                        write_channel_entry(
+                            f_flat,
+                            channel_data['tvname'],
+                            GROUP_FLAT,
+                            channel_data['display_name'],
+                            channel_data['tvlink'],
+                            channel_data['logo_url']
+                        )
+                        
+                        processed_count += 1
                     
-                    # 步骤130: 写入无分组版
-                    write_channel_entry(
-                        f_flat,
-                        channel_data['tvname'],
-                        channel_data['group_flat'],
-                        channel_data['display_name'],
-                        channel_data['tvlink'],
-                        channel_data['logo_url']
-                    )
-                
-                print("✅ 处理完成，已生成M3U文件")
-
+                    print(f"✅ 处理完成！处理了 {processed_count} 个频道，跳过了 {skipped_count} 个频道")
+                    
+            except requests.RequestException as e:
+                print(f"❌ 获取源内容失败: {e}")
+                sys.exit(1)
+            except Exception as e:
+                print(f"❌ 处理过程中出现错误: {e}")
+                sys.exit(1)
+        
         if __name__ == "__main__":
             main()
         EOF
         
+        # 执行Python脚本
         python tv_processor.py
-      
-    - name: 开始推送
-      if: success()  # 只有前面的步骤都成功才执行推送
+    
+    # 步骤5: 推送到GitHub（可选）
+    - name: 上传生成的文件
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: m3u-files
+        path: |
+          MY9原版.m3u
+          MY9分节目.m3u
+          MY9无分组.m3u
+        retention-days: 7
+    
+    # 步骤6: 显示完成信息
+    - name: 显示完成信息
+      if: success()
       run: |
-        # 配置Git
-        git config --global user.name "Auto Sync"
-        git config --global user.email "auto@sync.com"
-        USER="tyrian9905"
-        REPO="iptv"
-        
-        # 获取北京时间
-        export TZ='Asia/Shanghai'
-        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-        
-        # 克隆仓库
-        git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/${USER}/${REPO}.git
-        
-        # 进入仓库并更新文件
-        cd ${REPO}
-        
-        # 确保目录存在
-        mkdir -p iptv
-        
-        # 检查M3U文件是否生成
-        if [ ! -f "../MY9原版.m3u" ]; then
-          echo "❌ M3U文件未生成，跳过推送"
-          exit 0
-        fi
-        
-        # 复制所有M3U文件
-        cp ../*.m3u ./ 2>/dev/null || true
-        
-        # 添加目录下所有文件
-        git add .
-        
-        # 检查是否有变更
-        if ! git diff --cached --quiet; then
-          git commit -m "自动同步文件 ${BEIJING_TIME}"
-          git push origin master
-          echo "✅ 文件已同步！"
-        else
-          echo "⚠️ 没有文件变更，跳过提交"
-        fi
-        
-        echo "🎉 节目m3u更新成功！"
+        echo "🎉 电视节目列表处理完成！"
+        echo "📁 生成的文件:"
+        ls -la *.m3u
