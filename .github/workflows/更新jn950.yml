@@ -229,7 +229,6 @@ jobs:
                 
                 # 75: 检查TV链接可用性
                 if not check_tvlink_availability(tvlink):
-                    print(f"跳过不可用链接: {tvlink}")
                     return current_group_orig, current_group_cat, None
                 
                 # 80: 标准化tvname
