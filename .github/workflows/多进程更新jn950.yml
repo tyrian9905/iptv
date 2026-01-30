@@ -1,0 +1,488 @@
+name: 多进程更新jn950
+
+on:
+  workflow_dispatch:  # 手动触发
+  schedule:
+  # 北京时间凌晨2点 = UTC时间前一天18点
+  - cron: '0 2,10 * * *'
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests aiohttp aiodns
+        
+    - name: Process TV Channels (Multithreaded)
+      run: |
+        cat <<'EOF'>tv_processor.py
+        import re
+        import requests
+        from urllib.parse import quote
+        import sys
+        import asyncio
+        import aiohttp
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        import time
+
+        # ==================== 配置参数 ====================
+        SOURCE_URL = "https://raw.githubusercontent.com/jn950/live/refs/heads/main/tv/pllive.txt"
+        LOGO_BASE_URL = "https://gitee.com/tyrian9905/iptv/raw/master/tvlogo/"
+        EPG_URL = "https://gitee.com/taksssss/tv/raw/main/epg/51zmt.xml.gz"
+        GROUP_FLAT = "JN950"
+        MAX_WORKERS = 20  # 最大并发线程数
+        REQUEST_TIMEOUT = 3  # 请求超时时间（秒）
+        BATCH_SIZE = 50  # 每批处理的链接数量
+
+        # ==================== CCTV显示名称映射 ====================
+        CCTV_DISPLAY_NAMES = {
+            "CCTV1": "CCTV-1 综合",
+            "CCTV2": "CCTV-2 财经",
+            "CCTV3": "CCTV-3 综艺",
+            "CCTV4": "CCTV-4 中文国际",
+            "CCTV5": "CCTV-5 体育",
+            "CCTV6": "CCTV-6 电影",
+            "CCTV7": "CCTV-7 国防军事",
+            "CCTV8": "CCTV-8 电视剧",
+            "CCTV9": "CCTV-9 纪录",
+            "CCTV11": "CCTV-11 戏曲",
+            "CCTV12": "CCTV-12 社会与法",
+            "CCTV13": "CCTV-13 新闻",
+            "CCTV14": "CCTV-14 少儿",
+            "CCTV15": "CCTV-15 音乐",
+            "CCTV16": "CCTV-16 奥林匹克",
+            "CCTV17": "CCTV-17 农业农村"
+        }
+
+        class ChannelProcessor:
+            """频道处理器类，包含所有处理逻辑"""
+            
+            def __init__(self):
+                self.valid_channels = []
+                self.skipped_channels = []
+                self.start_time = time.time()
+                
+            def check_source_content(self, content):
+                """检查源内容是否包含足够的IP:端口格式"""
+                ip_port_pattern = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\:\d+'
+                matches = re.findall(ip_port_pattern, content)
+                
+                match_count = len(matches)
+                print(f"在源内容中找到 {match_count} 个IP:端口格式的匹配")
+                
+                if match_count < 10:
+                    print(f"❌ 匹配到的IP:端口格式少于10个({match_count})，结束处理")
+                    return False
+                else:
+                    print(f"✅ 匹配到的IP:端口格式足够({match_count}个)，开始处理")
+                    return True
+            
+            def normalize_tvname(self, tvname):
+                """步骤80: 标准化tvname"""
+                tvname = tvname.upper()
+                characters_to_remove = [' ', '-', 'FHD', 'HD', 'SD', '高清', '标清', '超清']
+                for char in characters_to_remove:
+                    tvname = tvname.replace(char, '')
+                return tvname
+            
+            def process_special_channels(self, tvname):
+                """步骤100.1-100.3: 处理特殊频道名称"""
+                # 步骤100.1: 西藏卫视藏语
+                if "西藏卫视藏语" in tvname:
+                    return "藏语卫视", "藏语卫视"
+                
+                # 步骤100.2: 第一财经
+                if tvname == "第一财经":
+                    return "东方财经", "东方财经"
+                
+                # 步骤100.3: 中国交通频道
+                if tvname == "中国交通频道":
+                    return "中国交通", "中国交通"
+                
+                return tvname, tvname
+            
+            def process_cgtn_channels(self, tvname):
+                """步骤100.5: 处理CGTN频道"""
+                # 步骤100.5.1: CGTN英语
+                if "CGTN英语" in tvname:
+                    return "CGTN", "CGTN"
+                
+                # 步骤100.5.2: 阿拉伯语
+                if "阿拉伯语" in tvname:
+                    return "CGTN阿语", "CGTN阿拉伯语"
+                
+                # 步骤100.5.3: 西班牙语
+                if "西班牙语" in tvname:
+                    return "CGTN西语", "CGTN西班牙语"
+                
+                return tvname, tvname
+            
+            def process_cctv_channels(self, tvname):
+                """步骤100.7: 处理CCTV频道"""
+                # 步骤100.7.1: 3D频道
+                if "3D" in tvname:
+                    return "CCTV3D", "CCTV 3D"
+                
+                # 步骤100.7.2: 美洲频道
+                if "美洲" in tvname or "AME" in tvname:
+                    return "CCTV4美洲", "CCTV-4 美洲"
+                
+                # 步骤100.7.3: 欧洲频道
+                if "欧洲" in tvname or "EUO" in tvname:
+                    return "CCTV4欧洲", "CCTV-4 欧洲"
+                
+                # 步骤100.7.4: 5+频道
+                if "+" in tvname or "PLUS" in tvname:
+                    return "CCTV5+", "CCTV-5+ 体育赛事"
+                
+                # 步骤100.7.5: CCTV10
+                if "10" in tvname:
+                    return "CCTV10", "CCTV-10 科教"
+                
+                # 步骤100.7.6: 其他CCTV数字频道
+                modified_name = tvname.replace("0", "") + "HD"
+                pattern = r"(CCTV\d{1,2})[^\d]"
+                match = re.search(pattern, modified_name)
+                
+                if match:
+                    cctv_num = match.group(1)
+                    display_name = CCTV_DISPLAY_NAMES.get(cctv_num, cctv_num)
+                    return cctv_num, display_name
+                
+                return tvname, tvname
+            
+            def build_logo_url(self, tvname):
+                """构建logo URL"""
+                safe_tvname = quote(tvname.replace("/", ""))
+                return f"{LOGO_BASE_URL}{safe_tvname}.png"
+            
+            async def check_url_async(self, session, url, channel_name):
+                """异步检查URL可用性"""
+                try:
+                    async with session.head(url, timeout=aiohttp.ClientTimeout(total=REQUEST_TIMEOUT),
+                                            allow_redirects=True) as response:
+                        status_code = response.status
+                        return status_code in [200, 301, 302], channel_name, url, status_code
+                except Exception as e:
+                    return False, channel_name, url, str(e)
+            
+            async def batch_check_urls(self, urls_info):
+                """批量异步检查URL"""
+                connector = aiohttp.TCPConnector(limit_per_host=10, limit=MAX_WORKERS)
+                async with aiohttp.ClientSession(connector=connector) as session:
+                    tasks = []
+                    for channel_name, url in urls_info:
+                        task = asyncio.create_task(self.check_url_async(session, url, channel_name))
+                        tasks.append(task)
+                    
+                    results = await asyncio.gather(*tasks, return_exceptions=True)
+                    
+                    valid_results = []
+                    for result in results:
+                        if isinstance(result, Exception):
+                            continue
+                        is_valid, channel_name, url, info = result
+                        if is_valid:
+                            valid_results.append((channel_name, url))
+                        else:
+                            self.skipped_channels.append((channel_name, url, f"链接检查失败: {info}"))
+                    
+                    return valid_results
+            
+            def process_line(self, line, current_group_orig, current_group_cat):
+                """处理单行数据，不进行URL检查"""
+                # 步骤40: 跳过空白行
+                line = line.strip()
+                if not line:
+                    return current_group_orig, current_group_cat, None
+                
+                # 步骤50: 分割行内容
+                parts = line.split(',', 1)
+                if len(parts) < 2:
+                    return current_group_orig, current_group_cat, None
+                
+                str1, str2 = parts[0].strip(), parts[1].strip()
+                
+                # 步骤60: 处理str2的不同情况
+                if not str2:
+                    return current_group_orig, current_group_cat, None
+                elif str2 == "#genre#":
+                    return str1, current_group_cat, None
+                else:
+                    tvname = str1
+                    tvlink = str2
+                    
+                    # 步骤70: 跳过4K/8K频道和特定卫视频道
+                    if "4K" in tvname or "8K" in tvname or re.search(r"卫视[\d]", tvname):
+                        return current_group_orig, current_group_cat, None
+                    
+                    # 步骤80: 标准化tvname
+                    tvname = self.normalize_tvname(tvname)
+                    
+                    # 步骤90: display_name初始化为tvname
+                    display_name = tvname
+                    
+                    # 步骤100: 根据tvname处理
+                    final_group_cat = current_group_cat
+                    final_tvname = tvname
+                    final_display_name = display_name
+                    
+                    # 步骤100.1-100.3: 处理特殊频道
+                    final_tvname, final_display_name = self.process_special_channels(final_tvname)
+                    
+                    # 步骤100.5: 处理CETV/CGTN
+                    if "CETV" in final_tvname or "CGTN" in final_tvname:
+                        final_group_cat = "央视"
+                        final_tvname, final_display_name = self.process_cgtn_channels(final_tvname)
+                    
+                    # 步骤100.7: 处理CCTV频道
+                    elif "CCTV" in final_tvname:
+                        final_group_cat = "央视"
+                        final_tvname, final_display_name = self.process_cctv_channels(final_tvname)
+                    
+                    # 构建logo URL
+                    logo_url = self.build_logo_url(final_tvname)
+                    
+                    return current_group_orig, current_group_cat, {
+                        'tvname': final_tvname,
+                        'display_name': final_display_name,
+                        'tvlink': tvlink,
+                        'group_orig': current_group_orig,
+                        'group_cat': final_group_cat,
+                        'group_flat': GROUP_FLAT,
+                        'logo_url': logo_url,
+                        'original_name': str1  # 保存原始名称用于检查
+                    }
+            
+            def write_channel_entry(self, file_obj, tvname, group_name, display_name, url, logo_url):
+                """写入M3U频道条目"""
+                entry = f'#EXTINF:-1 tvg-name="{tvname}" '
+                entry += f'tvg-logo="{logo_url}" '
+                entry += f'group-title="{group_name}",{display_name}\n'
+                entry += f"{url}\n"
+                file_obj.write(entry)
+            
+            def write_m3u_files(self, valid_channels):
+                """写入M3U文件"""
+                with (
+                    open('JN950原版.m3u', 'w', encoding='utf-8') as f_orig,
+                    open('JN950分节目.m3u', 'w', encoding='utf-8') as f_cat,
+                    open('JN950无分组.m3u', 'w', encoding='utf-8') as f_flat
+                ):
+                    # 写入文件头
+                    m3u_header = f'#EXTM3U x-tvg-url="{EPG_URL}"\n'
+                    f_orig.write(m3u_header)
+                    f_cat.write(m3u_header)
+                    f_flat.write(m3u_header)
+                    
+                    # 写入频道条目
+                    for channel_data in valid_channels:
+                        # 步骤110: 写入原版文件
+                        self.write_channel_entry(
+                            f_orig,
+                            channel_data['tvname'],
+                            channel_data['group_orig'],
+                            channel_data['display_name'],
+                            channel_data['tvlink'],
+                            channel_data['logo_url']
+                        )
+                        
+                        # 步骤120: 写入分类版
+                        self.write_channel_entry(
+                            f_cat,
+                            channel_data['tvname'],
+                            channel_data['group_cat'],
+                            channel_data['display_name'],
+                            channel_data['tvlink'],
+                            channel_data['logo_url']
+                        )
+                        
+                        # 步骤130: 写入无分组版
+                        self.write_channel_entry(
+                            f_flat,
+                            channel_data['tvname'],
+                            channel_data['group_flat'],
+                            channel_data['display_name'],
+                            channel_data['tvlink'],
+                            channel_data['logo_url']
+                        )
+            
+            def print_statistics(self):
+                """打印统计信息"""
+                elapsed_time = time.time() - self.start_time
+                print("\n" + "="*50)
+                print("📊 处理统计信息:")
+                print(f"  有效频道数: {len(self.valid_channels)}")
+                print(f"  跳过的频道数: {len(self.skipped_channels)}")
+                print(f"  总处理时间: {elapsed_time:.2f}秒")
+                print(f"  平均每个频道处理时间: {elapsed_time/max(len(self.valid_channels), 1):.3f}秒")
+                
+                if self.skipped_channels:
+                    print("\n📋 跳过的频道原因:")
+                    skip_reasons = {}
+                    for _, _, reason in self.skipped_channels[:10]:  # 只显示前10个
+                        if reason in skip_reasons:
+                            skip_reasons[reason] += 1
+                        else:
+                            skip_reasons[reason] = 1
+                    
+                    for reason, count in skip_reasons.items():
+                        print(f"  {reason}: {count}个频道")
+                    
+                    if len(self.skipped_channels) > 10:
+                        print(f"  ... 以及其他 {len(self.skipped_channels) - 10} 个频道")
+                print("="*50 + "\n")
+            
+            async def process_channels_async(self):
+                """异步处理频道的主函数"""
+                try:
+                    # 步骤20: 获取节目源内容
+                    print("正在获取源内容...")
+                    response = requests.get(SOURCE_URL, timeout=10)
+                    source_content = response.text
+                    
+                    # 检查源内容
+                    if not self.check_source_content(source_content):
+                        print("❌ 源内容不符合要求，结束脚本运行")
+                        return False
+                    
+                    # 步骤30: 初始化变量
+                    group_orig = ""
+                    group_cat = "卫视"
+                    
+                    all_lines = source_content.splitlines()
+                    
+                    print(f"准备处理 {len(all_lines[2:])} 个原始条目...")
+                    
+                    # 第一遍：解析所有频道，不检查链接
+                    all_parsed_channels = []
+                    urls_to_check = []  # 需要检查的URL列表
+                    
+                    for line in all_lines[2:]:
+                        result = self.process_line(line, group_orig, group_cat)
+                        group_orig, group_cat, channel_data = result
+                        
+                        if channel_data is not None:
+                            all_parsed_channels.append(channel_data)
+                            urls_to_check.append((channel_data['original_name'], channel_data['tvlink']))
+                    
+                    print(f"解析出 {len(all_parsed_channels)} 个频道，开始并行检查链接...")
+                    
+                    # 批量检查URL
+                    valid_urls_set = set()
+                    
+                    # 分批处理URL，避免一次处理太多
+                    for i in range(0, len(urls_to_check), BATCH_SIZE):
+                        batch = urls_to_check[i:i+BATCH_SIZE]
+                        print(f"检查链接批次 {i//BATCH_SIZE + 1}/{(len(urls_to_check) + BATCH_SIZE - 1)//BATCH_SIZE} ({len(batch)}个)")
+                        
+                        valid_batch_urls = await self.batch_check_urls(batch)
+                        
+                        for channel_name, url in valid_batch_urls:
+                            valid_urls_set.add(url)
+                        
+                        # 显示进度
+                        progress = min((i + len(batch)) / len(urls_to_check) * 100, 100)
+                        print(f"  进度: {progress:.1f}% ({i + len(batch)}/{len(urls_to_check)})")
+                    
+                    print(f"链接检查完成，有效链接: {len(valid_urls_set)} 个")
+                    
+                    # 第二遍：筛选有效频道
+                    for channel_data in all_parsed_channels:
+                        if channel_data['tvlink'] in valid_urls_set:
+                            self.valid_channels.append(channel_data)
+                        else:
+                            self.skipped_channels.append((channel_data['tvname'], channel_data['tvlink'], "链接不可用"))
+                    
+                    # 写入文件
+                    if self.valid_channels:
+                        self.write_m3u_files(self.valid_channels)
+                        print(f"✅ 处理完成，已生成 {len(self.valid_channels)} 个频道的M3U文件")
+                        self.print_statistics()
+                        return True
+                    else:
+                        print("❌ 没有有效的频道链接，结束处理")
+                        return False
+                        
+                except Exception as e:
+                    print(f"❌ 处理过程中出现错误: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    return False
+
+        def main():
+            """主处理函数"""
+            processor = ChannelProcessor()
+            
+            # 运行异步处理
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            try:
+                success = loop.run_until_complete(processor.process_channels_async())
+                if not success:
+                    sys.exit(1)
+            finally:
+                loop.close()
+
+        if __name__ == "__main__":
+            main()
+        EOF
+        
+        python tv_processor.py
+      
+    - name: 开始推送
+      if: success()  # 只有前面的步骤都成功才执行推送
+      run: |
+        # 配置Git
+        git config --global user.name "Auto Sync"
+        git config --global user.email "auto@sync.com"
+        USER="tyrian9905"
+        REPO="iptv"
+        
+        # 获取北京时间
+        export TZ='Asia/Shanghai'
+        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+        
+        # 克隆仓库
+        git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/${USER}/${REPO}.git
+        
+        # 进入仓库并更新文件
+        cd ${REPO}
+        
+        # 确保目录存在
+        mkdir -p iptv
+        
+        # 检查M3U文件是否生成
+        if [ ! -f "../JN950原版.m3u" ]; then
+          echo "❌ M3U文件未生成，跳过推送"
+          exit 0
+        fi
+        
+        # 复制所有M3U文件
+        cp ../*.m3u ./ 2>/dev/null || true
+        
+        # 添加目录下所有文件
+        git add .
+        
+        # 检查是否有变更
+        if ! git diff --cached --quiet; then
+          git commit -m "自动同步文件 ${BEIJING_TIME}"
+          git push origin master
+          echo "✅ 文件已同步！"
+        else
+          echo "⚠️ 没有文件变更，跳过提交"
+        fi
+        
+        echo "🎉 节目m3u更新成功！"
