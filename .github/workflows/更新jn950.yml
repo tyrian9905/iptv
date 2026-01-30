@@ -1,4 +1,4 @@
-name: 更新电视节目列表
+name: 更新jn950直播源
 
 on:
   workflow_dispatch:  # 手动触发
