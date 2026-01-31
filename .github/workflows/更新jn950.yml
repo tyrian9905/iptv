@@ -5,7 +5,7 @@ on:
   schedule:
     # 每天UTC时间18:00和02:00执行（北京时间02:00和10:00）
     #- cron: '0 2,10 * * *'
-    - cron: '0 18 * * *'
+    - cron: '0 10 * * *'
 
 jobs:
   process-tv-channels:
