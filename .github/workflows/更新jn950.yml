@@ -46,16 +46,24 @@ jobs:
         
         # ==================== 辅助函数 ====================
         def check_tvlink_availability(tvlink):
-            """检查TV链接是否可用"""
+            """检查TV链接是否可用（基于time_starttransfer）"""
             try:
-                # 使用curl检查链接状态
-                cmd = ['curl', '-o', '/dev/null', '--connect-timeout', '1', 
-                       '-m', '1', '-s', '-w', '%{http_code}', tvlink]
+                # 使用curl检查链接传输时间
+                cmd = ['curl', '-o', '/dev/null', '--connect-timeout', '1',
+                       '-m', '1', '-s', '-w', '%{time_starttransfer}', tvlink]
                 result = subprocess.run(cmd, capture_output=True, text=True)
-                
+        
                 if result.returncode == 0:
-                    http_code = result.stdout.strip()
-                    return http_code in ['200', '301', '302']
+                    time_starttransfer = result.stdout.strip()
+                    # 如果time_starttransfer为空或无法解析为浮点数，视为失败
+                    try:
+                        transfer_time = float(time_starttransfer)
+                        # 如果传输时间为0或大于0.15秒，视为不可用
+                        if transfer_time == 0 or transfer_time > 0.15:
+                            return False
+                        return True
+                    except ValueError:
+                        return False
                 return False
             except Exception:
                 return False
