@@ -365,22 +365,41 @@ jobs:
         # 执行Python脚本
         python tv_processor.py
     
-    # 步骤5: 推送到GitHub（可选）
-    - name: 上传生成的文件
-      if: success()
-      uses: actions/upload-artifact@v4
-      with:
-        name: m3u-files
-        path: |
-          MY9原版.m3u
-          MY9分节目.m3u
-          MY9无分组.m3u
-        retention-days: 7
-    
-    # 步骤6: 显示完成信息
-    - name: 显示完成信息
-      if: success()
+    - name: 开始推送
       run: |
-        echo "🎉 电视节目列表处理完成！"
-        echo "📁 生成的文件:"
-        ls -la *.m3u
+        # 配置Git
+        git config --global user.name "Auto Sync"
+        git config --global user.email "auto@sync.com"
+        USER="tyrian9905"
+        REPO="iptv"
+        
+        # 获取北京时间
+        export TZ='Asia/Shanghai'
+        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+        
+        # 克隆仓库
+        git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/${USER}/${REPO}.git
+        
+        # 进入仓库并更新文件
+        cd ${REPO}
+        
+        # 确保目录存在
+        mkdir -p iptv
+        
+        # 复制所有文件
+        cp ../*.m3u ./ 2>/dev/null || true
+        
+        # 添加目录下所有文件
+        #git add iptv/
+        git add .
+        
+        # 检查是否有变更
+        if ! git diff --cached --quiet; then
+          git commit -m "自动同步文件 ${BEIJING_TIME}"
+          git push origin master
+          echo "✅ 文件已同步！"
+        else
+          echo "⚠️ 没有文件变更，跳过提交"
+        fi
+        
+        echo "🎉 直播源更新成功！"
