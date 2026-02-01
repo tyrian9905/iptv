@@ -366,6 +366,7 @@ jobs:
         python tv_processor.py
     
     - name: 开始推送
+      if: success()  # 只有前面的步骤都成功才执行推送
       run: |
         # 配置Git
         git config --global user.name "Auto Sync"
@@ -386,11 +387,16 @@ jobs:
         # 确保目录存在
         mkdir -p iptv
         
-        # 复制所有文件
+        # 检查M3U文件是否生成
+        if [ ! -f "../MY9原版.m3u" ]; then
+          echo "❌ M3U文件未生成，跳过推送"
+          exit 0
+        fi
+        
+        # 复制所有M3U文件
         cp ../*.m3u ./ 2>/dev/null || true
         
         # 添加目录下所有文件
-        #git add iptv/
         git add .
         
         # 检查是否有变更
@@ -402,4 +408,4 @@ jobs:
           echo "⚠️ 没有文件变更，跳过提交"
         fi
         
-        echo "🎉 直播源更新成功！"
+        echo "🎉 节目m3u更新成功！"
