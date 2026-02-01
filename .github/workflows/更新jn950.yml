@@ -58,7 +58,7 @@ jobs:
                     try:
                         transfer_time = float(time_starttransfer)
                         # 如果传输时间为0或大于0.15秒，视为不可用
-                        if transfer_time == 0 or transfer_time > 0.9:
+                        if transfer_time == 0 or transfer_time > 0.99:
                             return False
                         return True
                     except ValueError:
