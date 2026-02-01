@@ -50,15 +50,15 @@ jobs:
             try:
                 # 使用curl检查链接传输时间
                 cmd = ['curl', '-o', '/dev/null', '--connect-timeout', '1',
-                       '-m', '1', '-s', '-w', '%{time_starttransfer}', tvlink]
+                       '-m', '2', '-s', '-w', '%{time_starttransfer}', tvlink]
                 result = subprocess.run(cmd, capture_output=True, text=True)
                 if result.returncode == 0:
                     time_starttransfer = result.stdout.strip()
                     # 如果time_starttransfer为空或无法解析为浮点数，视为失败
                     try:
                         transfer_time = float(time_starttransfer)
-                        # 如果传输时间为0或大于0.15秒，视为不可用
-                        if transfer_time == 0 or transfer_time > 0.99:
+                        # 如果传输时间为0或大于xx秒，视为不可用
+                        if transfer_time == 0 or transfer_time > 1.99:
                             return False
                         return True
                     except ValueError:
