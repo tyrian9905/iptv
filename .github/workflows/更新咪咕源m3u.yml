@@ -1,0 +1,195 @@
+name: 更新咪咕源
+
+on:
+  workflow_dispatch:  # 手动触发
+  schedule:
+  # 北京时间凌晨2点 = UTC时间前一天18点
+  - cron: '15 20 * * *'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests beautifulsoup4
+    
+    - name: Download and update M3U file
+      run: |
+        python << 'EOF'
+        import requests
+        import re
+        from bs4 import BeautifulSoup
+        from urllib.parse import urlparse
+        
+        def extract_ips_from_html(html_content):
+            """
+            从HTML内容中提取IP/域名和端口
+            支持格式: IP:PORT, 域名:PORT, IP:PORT/路径
+            """
+            ip_patterns = [
+                # 匹配 IP:PORT 格式
+                r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+)',
+                # 匹配 域名:PORT 格式
+                r'([a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?:\d+)',
+                # 匹配 IP:PORT/路径 格式
+                r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+[^<\s>]*)',
+                # 匹配 域名:PORT/路径 格式
+                r'([a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?:\d+[^<\s>]*)'
+            ]
+            
+            all_addresses = []
+            
+            for pattern in ip_patterns:
+                matches = re.findall(pattern, html_content)
+                for match in matches:
+                    # 如果匹配结果是元组（由于分组），取第一个元素
+                    if isinstance(match, tuple):
+                        address = match[0]
+                    else:
+                        address = match
+                    
+                    # 清理地址，移除多余的空格和特殊字符
+                    address = address.strip()
+                    # 移除可能的前后引号
+                    address = address.strip('"').strip("'").strip()
+                    
+                    # 验证地址格式
+                    if ':' in address:
+                        # 分割地址和可能的路径
+                        parts = address.split('/')[0]
+                        if ':' in parts:
+                            all_addresses.append(address)
+            
+            # 去重
+            unique_addresses = []
+            for addr in all_addresses:
+                if addr not in unique_addresses:
+                    unique_addresses.append(addr)
+            
+            return unique_addresses
+        
+        def clean_ip_address(ip_address):
+            """
+            清理IP地址，移除多余部分
+            """
+            # 如果包含路径，只保留IP:PORT部分
+            if '/' in ip_address:
+                # 提取协议、域名/IP和端口
+                parsed = urlparse('http://' + ip_address.replace('://', '://'))
+                hostname = parsed.hostname
+                port = parsed.port
+                
+                if hostname and port:
+                    return f"{hostname}:{port}"
+                elif hostname:
+                    return hostname
+            
+            return ip_address
+        
+        # 1. 下载原始M3U文件
+        print("正在下载咪咕模板...")
+        m3u_url = "https://raw.githubusercontent.com/tyrian9905/iptv/refs/heads/main/咪咕模板.m3u"
+        response = requests.get(m3u_url)
+        m3u_content = response.text
+        
+        # 2. 获取IP列表
+        print("正在获取IP列表...")
+        ip_url = "https://gxiptv.de5.net/list"
+        try:
+            ip_response = requests.get(ip_url, timeout=10)
+            ip_response.raise_for_status()
+            
+            # 提取IP地址
+            ip_list = extract_ips_from_html(ip_response.text)
+            
+            # 清理IP地址
+            cleaned_ips = [clean_ip_address(ip) for ip in ip_list]
+            
+            print(f"找到原始IP列表 ({len(ip_list)}个): {ip_list}")
+            print(f"清理后IP列表 ({len(cleaned_ips)}个): {cleaned_ips}")
+            
+            # 取前3个
+            ip_list = cleaned_ips[:3]
+            
+        except Exception as e:
+            print(f"获取IP列表失败: {e}")
+            # 如果获取失败，使用示例IP
+            ip_list = ['219.149.247.15:8083', 'w.yyjn.top:3000', '110.155.78.12:7788']
+            print(f"使用示例IP: {ip_list}")
+        
+        # 确保至少有3个IP（如果不足，用空字符串填充）
+        while len(ip_list) < 3:
+            ip_list.append('')
+        
+        # 3. 替换IP占位符
+        print("正在替换IP占位符...")
+        print(f"使用的IP: {ip_list}")
+        
+        replacements = {
+            '{ip_port1}': ip_list[0] if ip_list[0] else '',
+            '{ip_port2}': ip_list[1] if ip_list[1] else '',
+            '{ip_port3}': ip_list[2] if ip_list[2] else ''
+        }
+        
+        for placeholder, ip in replacements.items():
+            m3u_content = m3u_content.replace(placeholder, ip)
+            print(f"替换 {placeholder} -> {ip}")
+        
+        # 4. 保存文件
+        output_file = '咪咕源.m3u'
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(m3u_content)
+        
+        print(f"文件已保存: {output_file}")
+
+    - name: 开始推送
+      run: |
+        # 配置Git
+        git config --global user.name "Auto Sync"
+        git config --global user.email "auto@sync.com"
+        USER="tyrian9905"
+        REPO="iptv"
+        
+        # 获取北京时间
+        export TZ='Asia/Shanghai'
+        BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+        
+        # 克隆仓库
+        git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/${USER}/${REPO}.git
+        
+        # 进入仓库并更新文件
+        cd ${REPO}
+        
+        # 确保目录存在
+        mkdir -p iptv
+        
+        # 复制文件
+        cp ../咪咕源.m3u ./ 2>/dev/null || true
+        
+        # 添加dnsblock目录下所有文件
+        #git add iptv/
+        git add .
+        
+        # 检查是否有变更
+        if ! git diff --cached --quiet; then
+          git commit -m "自动同步文件 ${BEIJING_TIME}"
+          git push origin master
+          echo "✅ 文件已同步！"
+        else
+          echo "⚠️ 没有文件变更，跳过提交"
+        fi
+        
+        echo "🎉 执行成功！"
