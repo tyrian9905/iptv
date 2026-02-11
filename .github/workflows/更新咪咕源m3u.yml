@@ -147,7 +147,7 @@ jobs:
             print(f"替换 {placeholder} -> {ip}")
         
         # 4. 保存文件
-        output_file = '咪咕源.m3u'
+        output_file = '通用.m3u'
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(m3u_content)
         
@@ -175,7 +175,7 @@ jobs:
         mkdir -p iptv
         
         # 复制文件
-        cp ../咪咕源.m3u ./ 2>/dev/null || true
+        cp ../通用.m3u ./ 2>/dev/null || true
         
         # 添加dnsblock目录下所有文件
         #git add iptv/
