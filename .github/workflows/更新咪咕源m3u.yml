@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # 手动触发
   schedule:
   # 北京时间凌晨2点 = UTC时间前一天18点
-  - cron: '15 20 * * *'
+  - cron: '30 21 * * *'
 
 jobs:
   sync:
@@ -37,17 +37,13 @@ jobs:
         def extract_ips_from_html(html_content):
             """
             从HTML内容中提取IP/域名和端口
-            支持格式: IP:PORT, 域名:PORT, IP:PORT/路径
+            只支持格式: IP:PORT, 域名:PORT
             """
             ip_patterns = [
                 # 匹配 IP:PORT 格式
                 r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+)',
                 # 匹配 域名:PORT 格式
-                r'([a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?:\d+)',
-                # 匹配 IP:PORT/路径 格式
-                r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+[^<\s>]*)',
-                # 匹配 域名:PORT/路径 格式
-                r'([a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?:\d+[^<\s>]*)'
+                r'([a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?:\d+)'
             ]
             
             all_addresses = []
@@ -68,10 +64,14 @@ jobs:
                     
                     # 验证地址格式
                     if ':' in address:
-                        # 分割地址和可能的路径
-                        parts = address.split('/')[0]
-                        if ':' in parts:
-                            all_addresses.append(address)
+                        # 确保端口部分有效
+                        try:
+                            host, port = address.split(':', 1)
+                            # 验证端口是否为数字且在有效范围内
+                            if port.isdigit() and 1 <= int(port) <= 65535:
+                                all_addresses.append(f"{host}:{port}")
+                        except ValueError:
+                            continue
             
             # 去重
             unique_addresses = []
@@ -80,24 +80,6 @@ jobs:
                     unique_addresses.append(addr)
             
             return unique_addresses
-        
-        def clean_ip_address(ip_address):
-            """
-            清理IP地址，移除多余部分
-            """
-            # 如果包含路径，只保留IP:PORT部分
-            if '/' in ip_address:
-                # 提取协议、域名/IP和端口
-                parsed = urlparse('http://' + ip_address.replace('://', '://'))
-                hostname = parsed.hostname
-                port = parsed.port
-                
-                if hostname and port:
-                    return f"{hostname}:{port}"
-                elif hostname:
-                    return hostname
-            
-            return ip_address
         
         # 1. 下载原始M3U文件
         print("正在下载咪咕模板...")
@@ -115,21 +97,17 @@ jobs:
             # 提取IP地址
             ip_list = extract_ips_from_html(ip_response.text)
             
-            # 清理IP地址
-            cleaned_ips = [clean_ip_address(ip) for ip in ip_list]
+            print(f"找到IP列表 ({len(cleaned_ips)}个): {cleaned_ips}")
             
-            print(f"找到原始IP列表 ({len(ip_list)}个): {ip_list}")
-            print(f"清理后IP列表 ({len(cleaned_ips)}个): {cleaned_ips}")
-            
-            # 取前3个
-            ip_list = cleaned_ips[:3]
+            # 取前5个
+            ip_list = cleaned_ips[:5]
             
         except Exception as e:
             print(f"获取IP列表失败: {e}")
             exit(1)
         
-        # 确保至少有3个IP（如果不足，用空字符串填充）
-        while len(ip_list) < 3:
+        # 确保至少有5个IP（如果不足，用空字符串填充）
+        while len(ip_list) < 5:
             ip_list.append('')
         
         # 3. 替换IP占位符
