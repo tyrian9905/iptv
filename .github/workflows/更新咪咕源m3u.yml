@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # 手动触发
   schedule:
   # 北京时间凌晨2点 = UTC时间前一天18点
-  - cron: '30 20 * * *'
+  - cron: '30 21 * * *'
 
 jobs:
   sync:
@@ -31,8 +31,6 @@ jobs:
         python << 'EOF'
         import requests
         import re
-        from bs4 import BeautifulSoup
-        from urllib.parse import urlparse
         
         def extract_ips_from_html(html_content):
             """
@@ -97,10 +95,10 @@ jobs:
             # 提取IP地址
             ip_list = extract_ips_from_html(ip_response.text)
             
-            print(f"找到IP列表 ({len(cleaned_ips)}个): {cleaned_ips}")
+            print(f"找到IP列表 ({len(ip_list)}个): {ip_list}")
             
-            # 取前5个
-            ip_list = cleaned_ips[:5]
+            # 取前3个
+            ip_list = ip_list[:5]
             
         except Exception as e:
             print(f"获取IP列表失败: {e}")
