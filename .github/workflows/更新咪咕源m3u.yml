@@ -116,8 +116,8 @@ jobs:
             '{ip_port1}': ip_list[0] if ip_list[0] else '',
             '{ip_port2}': ip_list[1] if ip_list[1] else '',
             '{ip_port3}': ip_list[2] if ip_list[2] else '',
-            '{ip_port4}': ip_list[3] if ip_list[2] else '',
-            '{ip_port5}': ip_list[4] if ip_list[2] else ''
+            '{ip_port4}': ip_list[3] if ip_list[3] else '',
+            '{ip_port5}': ip_list[4] if ip_list[4] else ''
         }
         
         for placeholder, ip in replacements.items():
