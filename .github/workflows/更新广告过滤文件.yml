@@ -14,6 +14,8 @@ jobs:
     steps:
     - name: 下载广告过滤文件
       run: |
+        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockfilterslite.txt -O 217heidai_adblockfilterslite.adb
+        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnslite.txt -O 217heidai_adblockdnslite.adb
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockfilters.txt -O 217heidai_adblockfilters.adb
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdns.txt -O 217heidai_adblockdns.adb
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasq.txt -O 217heidai_adblockdnsmasq.adb
