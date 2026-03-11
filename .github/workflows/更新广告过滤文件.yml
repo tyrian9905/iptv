@@ -16,6 +16,7 @@ jobs:
       run: |
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockfilterslite.txt -O 217heidai_adblockfilterslite.adb
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnslite.txt -O 217heidai_adblockdnslite.adb
+        wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasqlite.txt -O 217heidai_adblockdnsmasqlite.adb
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockfilters.txt -O 217heidai_adblockfilters.adb
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdns.txt -O 217heidai_adblockdns.adb
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasq.txt -O 217heidai_adblockdnsmasq.adb
