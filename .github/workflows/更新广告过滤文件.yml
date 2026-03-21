@@ -19,14 +19,14 @@ jobs:
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdnsmasqlite.txt -O 217heidai_adblockdnsmasqlite.adb
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockfilters.txt -O 217heidai_adblockfilters.adb
         wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdns.txt -O 217heidai_adblockdns.adb
-        wget -q https://gitee.com/tyrian9905/iptv/raw/master/adblock/mydnsmasq.adb -O mydnsmasq.txt
+        wget -q https://cnb.cool/tyrian9905/work/-/git/raw/main/adblock/YXdnsmasq.txt -O yxdnsmasq.txt
         # wget -q https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Dnsmasq.conf -O 秋风_dnsmasq.txt
         # wget -q https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/adblock-for-dnsmasq.conf -O anti-ad_dnsmasq.txt
         # wget -q https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockdomainlite.txt -O 217heidai_冰盾.txt
         # wget -q https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/AWAvenue-Ads-Rule.txt -O 秋风_冰盾.txt
         # wget -q https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-domains.txt -O anti-ad_冰盾.txt
 
-        cat mydnsmasq.txt >> 217heidai_adblockdnsmasqlite.adb
+        cat yxdnsmasq.txt >> 217heidai_adblockdnsmasqlite.adb
 
     - name: 开始推送
       run: |
@@ -34,14 +34,14 @@ jobs:
         git config --global user.name "Auto Sync"
         git config --global user.email "auto@sync.com"
         USER="tyrian9905"
-        REPO="iptv"
+        REPO="work"
         
         # 获取北京时间
         export TZ='Asia/Shanghai'
         BEIJING_TIME=$(date '+%Y-%m-%d %H:%M:%S')
         
         # 克隆仓库
-        git clone https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/${USER}/${REPO}.git
+        git clone https://oauth2:${{ secrets.CNB_TOKEN }}@cnb.cool/${USER}/${REPO}.git
         
         cd ${REPO}
         
@@ -55,7 +55,6 @@ jobs:
         # 复制所有广告规则文件
         # cp ../*.txt ../*.adb ./adblock/ 2>/dev/null || true
         cp ../*.adb ./adblock/ 2>/dev/null || true
-        # 添加dnsblock目录下所有文件
         git add adblock/
         
         # 检查是否有变更
